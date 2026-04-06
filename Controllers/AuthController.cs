@@ -118,5 +118,46 @@ namespace DoctorAppointmentSystem.Controllers
                 Roles = roles
             });
         }
+
+
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordRequest model)
+        {
+            var user = await _userManager.FindByEmailAsync(model.Email);
+
+            // Do NOT reveal if user exists (security)
+            if (user == null)
+                return Ok("If account exists, password reset link sent");
+
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+
+            // 🔥 In production → send email
+            // For now → return token
+            return Ok(new
+            {
+                Message = "Reset token generated",
+                Token = token
+            });
+        }
+
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword(ResetPasswordRequest model)
+        {
+            var user = await _userManager.FindByEmailAsync(model.Email);
+
+            if (user == null)
+                return BadRequest("Invalid request");
+
+            var result = await _userManager.ResetPasswordAsync(
+                user,
+                model.Token,
+                model.NewPassword
+            );
+
+            if (!result.Succeeded)
+                return BadRequest(result.Errors);
+
+            return Ok("Password reset successful");
+        }
     }
 }
