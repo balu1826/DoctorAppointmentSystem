@@ -90,5 +90,118 @@ namespace DoctorAppointmentSystem.Service
             //  Single save (best practice)
             await _context.SaveChangesAsync();
         }
+
+        public async Task SetAvailabilityAsync(string userId, DoctorAvailabilityDTO dto)
+        {
+            var doctor = await _context.Doctors
+                .FirstOrDefaultAsync(d => d.UserId == userId);
+
+            if (doctor == null)
+                throw new Exception("Doctor not found");
+
+            if (!doctor.IsApproved)
+                throw new Exception("Doctor not approved");
+
+            if (dto.StartTime >= dto.EndTime)
+                throw new Exception("Start time must be less than end time");
+
+          
+
+            //  Prevent duplicate for same day
+            var existing = await _context.DoctorAvailability
+                .FirstOrDefaultAsync(a => a.DoctorId == doctor.Id && a.DayOfWeek == dto.DayOfWeek);
+
+            if (existing != null)
+            {
+                // Update existing
+                existing.StartTime = dto.StartTime;
+                existing.EndTime = dto.EndTime;
+                existing.SlotDurationInMinutes = dto.SlotDurationInMinutes;
+             
+            }
+            else
+            {
+                var availability = new DoctorAvailability
+                {
+                    DoctorId = doctor.Id,
+                    DayOfWeek = dto.DayOfWeek,
+                    StartTime = dto.StartTime,
+                    EndTime = dto.EndTime,
+                    SlotDurationInMinutes = dto.SlotDurationInMinutes,
+                   
+                };
+
+                _context.DoctorAvailability.Add(availability);
+            }
+
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task GenerateSlotsAsync(string userId, int numberOfDays)
+        {
+            var doctor = await _context.Doctors
+                .FirstOrDefaultAsync(d => d.UserId == userId);
+
+            if (doctor == null)
+                throw new Exception("Doctor not found");
+
+            if (!doctor.IsApproved)
+                throw new Exception("Doctor not approved");
+
+            var availabilities = await _context.DoctorAvailability
+                .Where(a => a.DoctorId == doctor.Id)
+                .ToListAsync();
+
+            if (!availabilities.Any())
+                throw new Exception("No availability found");
+
+            var today = DateTime.UtcNow.Date;
+
+            var slotsToAdd = new List<AppointmentSlot>();
+
+            for (int i = 0; i < numberOfDays; i++)
+            {
+                var currentDate = today.AddDays(i);
+
+                var availability = availabilities
+                    .FirstOrDefault(a => a.DayOfWeek == currentDate.DayOfWeek);
+
+                if (availability == null)
+                    continue;
+
+                var start = currentDate.Add(availability.StartTime);
+                var end = currentDate.Add(availability.EndTime);
+
+                while (start < end)
+                {
+                    var slotEnd = start.AddMinutes(availability.SlotDurationInMinutes);
+
+                  
+
+                    //  Prevent duplicates
+                    bool exists = await _context.AppointmentSlots.AnyAsync(s =>
+                        s.DoctorId == doctor.Id &&
+                        s.StartDateTime == start);
+
+                    if (!exists)
+                    {
+                        slotsToAdd.Add(new AppointmentSlot
+                        {
+                            DoctorId = doctor.Id,
+                            StartDateTime = start,
+                            EndDateTime = slotEnd
+                        });
+                    }
+
+                    start = slotEnd;
+                }
+            }
+
+            if (slotsToAdd.Any())
+            {
+                _context.AppointmentSlots.AddRange(slotsToAdd);
+                await _context.SaveChangesAsync();
+            }
+        }
     }
 }

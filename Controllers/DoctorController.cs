@@ -47,5 +47,37 @@ namespace DoctorAppointmentSystem.Controllers
 
             return Ok("Profile submitted for re-verification");
         }
+
+        [HttpPost("availability")]
+        public async Task<IActionResult> SetAvailability(DoctorAvailabilityDTO dto)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized("User not authenticated");
+            }
+
+            await _doctorService.SetAvailabilityAsync(userId, dto);
+
+            return Ok(new
+            {
+                message = "Availability set successfully"
+            });
+        }
+        [HttpPost("generate-slots")]
+        public async Task<IActionResult> GenerateSlots(GenerateSlotsDto dto)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId)) {
+                return Unauthorized("User not authenticated");
+            }
+
+            await _doctorService.GenerateSlotsAsync(userId, dto.NumberOfDays);
+
+            return Ok(new
+            {
+                message = "Slots generated successfully"
+            });
+        }
     }
 }

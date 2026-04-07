@@ -14,5 +14,7 @@ namespace DoctorAppointmentSystem.Model
         public bool IsApproved { get; set; } = false;
 
         public VerificationStatus VerificationStatus { get; set; } = VerificationStatus.Pending;
+
+        public virtual ICollection<DoctorAvailability> Availabilities { get; set; } = new List<DoctorAvailability>();
     }
 }

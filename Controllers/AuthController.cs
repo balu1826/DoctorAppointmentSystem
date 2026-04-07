@@ -65,7 +65,7 @@ namespace DoctorAppointmentSystem.Controllers
             // Assign role
             await _userManager.AddToRoleAsync(user, role);
 
-            // 🔥 Create domain entity
+            //  Create domain entity
             if (role == "Doctor")
             {
                 var doctor = new Doctor

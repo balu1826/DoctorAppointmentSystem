@@ -6,5 +6,7 @@ namespace DoctorAppointmentSystem.Service.Interfaces
     {
         Task SubmitDoctorProfileAsync(string userId, DoctorProfileDto dto);
         Task UpdateDoctorProfileAsync(string userId, DoctorProfileDto dto);
+        Task SetAvailabilityAsync(string userId, DoctorAvailabilityDTO dto);
+        Task GenerateSlotsAsync(string userId, int numberOfDays);
     }
 }
