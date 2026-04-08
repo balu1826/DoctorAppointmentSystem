@@ -1,5 +1,6 @@
 ﻿using DoctorAppointmentSystem.DB;
 using DoctorAppointmentSystem.DTO;
+using DoctorAppointmentSystem.Exceptions;
 using DoctorAppointmentSystem.Model;
 using DoctorAppointmentSystem.Service;
 using Microsoft.AspNetCore.Authorization;
@@ -102,7 +103,7 @@ namespace DoctorAppointmentSystem.Controllers
             var user = await _userManager.FindByEmailAsync(dto.Email);
 
             if (user == null || !await _userManager.CheckPasswordAsync(user, dto.Password))
-                throw new UnauthorizedAccessException("Invalid credentials");
+                throw new BadRequestException("Invalid credentials");
 
             var accessToken =await _tokenService.GenerateAccessToken(user);
             var refreshToken = _tokenService.GenerateRefreshToken(user.Id);

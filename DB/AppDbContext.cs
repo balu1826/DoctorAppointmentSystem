@@ -18,6 +18,7 @@ namespace DoctorAppointmentSystem.DB
 
         public DbSet<DoctorAvailability> DoctorAvailability { get; set; }
         public DbSet<AppointmentSlot> AppointmentSlots { get; set; }
+        public DbSet<Appointment> Appointments { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -44,6 +45,11 @@ namespace DoctorAppointmentSystem.DB
                 .HasOne(s => s.Doctor)
                 .WithMany(d => d.AppointmentSlot)
                 .HasForeignKey(s => s.DoctorId);
+            modelBuilder.Entity<Appointment>()
+                .HasOne(a => a.Slot)
+                .WithMany()
+                .HasForeignKey(a => a.SlotId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }
