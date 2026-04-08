@@ -1,4 +1,5 @@
 ﻿using DoctorAppointmentSystem.DTO;
+using DoctorAppointmentSystem.Exceptions;
 using DoctorAppointmentSystem.Service.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -78,6 +79,74 @@ namespace DoctorAppointmentSystem.Controllers
             {
                 message = "Slots generated successfully"
             });
+        }
+
+        // Get Slots
+        [HttpGet("slots")]
+        public async Task<IActionResult> GetSlots()
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized("User not authenticated");
+            }
+
+            var slots = await _doctorService.GetDoctorSlotsAsync(userId);
+
+            return Ok(slots);
+        }
+
+        // Block Slot
+        [HttpPut("slots/{slotId}/block")]
+        public async Task<IActionResult> BlockSlot(int slotId)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized("User not authenticated");
+            }
+
+            try
+            {
+                await _doctorService.BlockSlotAsync(userId, slotId);
+
+                return Ok(new { message = "Slot blocked successfully" });
+            }
+            catch (BadRequestException ex)
+            {
+                return BadRequest(new { message = ex.Message }); 
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Something went wrong" });
+            }
+        }
+
+        //  Unblock Slot
+        [HttpPut("slots/{slotId}/unblock")]
+        public async Task<IActionResult> UnblockSlot(int slotId)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized("User not authenticated");
+            }
+            try
+            {
+
+                await _doctorService.UnblockSlotAsync(userId, slotId);
+
+                return Ok(new { message = "Slot unblocked successfully" });
+            }
+            catch (BadRequestException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Something went wrong" });
+
+            }
         }
     }
 }

@@ -1,4 +1,5 @@
 using DoctorAppointmentSystem.DB;
+using DoctorAppointmentSystem.Middleware;
 using DoctorAppointmentSystem.Model;
 using DoctorAppointmentSystem.Service;
 using DoctorAppointmentSystem.Service.Interfaces;
@@ -96,6 +97,7 @@ app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
 app.UseAuthentication();
+app.UseMiddleware<ExceptionMiddleware>();
 app.UseAuthorization();
 
 app.MapControllers();

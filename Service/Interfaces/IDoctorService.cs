@@ -8,5 +8,8 @@ namespace DoctorAppointmentSystem.Service.Interfaces
         Task UpdateDoctorProfileAsync(string userId, DoctorProfileDto dto);
         Task SetAvailabilityAsync(string userId, DoctorAvailabilityDTO dto);
         Task GenerateSlotsAsync(string userId, int numberOfDays);
+        Task<List<DoctorSlotDTO>> GetDoctorSlotsAsync(string userId);
+        Task BlockSlotAsync(string userId, int slotId);
+        Task UnblockSlotAsync(string userId, int slotId);
     }
 }

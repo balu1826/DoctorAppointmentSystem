@@ -1,9 +1,10 @@
-﻿using DoctorAppointmentSystem.DTO;
+﻿using DoctorAppointmentSystem.DB;
+using DoctorAppointmentSystem.DTO;
+using DoctorAppointmentSystem.Exceptions;
 using DoctorAppointmentSystem.Model;
 using DoctorAppointmentSystem.Model.Enums;
 using DoctorAppointmentSystem.Service.Interfaces;
 using Microsoft.AspNetCore.Identity;
-using DoctorAppointmentSystem.DB;
 using Microsoft.EntityFrameworkCore;
 
 namespace DoctorAppointmentSystem.Service
@@ -203,5 +204,87 @@ namespace DoctorAppointmentSystem.Service
                 await _context.SaveChangesAsync();
             }
         }
+
+        public async Task<List<DoctorSlotDTO>> GetDoctorSlotsAsync(string userId)
+        {
+            var doctor = await _context.Doctors
+                .FirstOrDefaultAsync(d => d.UserId == userId);
+
+            if (doctor == null)
+                throw new Exception("Doctor not found");
+
+            var slots = await _context.AppointmentSlots
+                .Where(s => s.DoctorId == doctor.Id)
+                .OrderBy(s => s.StartDateTime)
+                .Select(s => new DoctorSlotDTO
+                {
+                    SlotId = s.Id,
+                    StartDateTime = s.StartDateTime,
+                    EndDateTime = s.EndDateTime,
+                    IsBooked = s.IsBooked,
+                    IsBlocked = s.IsBlocked
+                })
+                .ToListAsync();
+
+            return slots;
+        }
+
+        public async Task BlockSlotAsync(string userId, int slotId)
+        {
+            var doctor = await _context.Doctors
+                .FirstOrDefaultAsync(d => d.UserId == userId);
+
+            if (doctor == null)
+                throw new Exception("Doctor not found");
+
+            var slot = await _context.AppointmentSlots
+                .FirstOrDefaultAsync(s => s.Id == slotId);
+
+            if (slot == null)
+                throw new Exception("Slot not found");
+
+            //  Ownership check
+            if (slot.DoctorId != doctor.Id)
+                throw new Exception("Unauthorized");
+
+            //  Cannot block booked slot
+            if (slot.IsBooked)
+                throw new BadRequestException("Slot already booked");
+            if (slot.IsBlocked)
+                throw new BadRequestException("Slot already blocked");
+
+            slot.IsBlocked = true;
+
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task UnblockSlotAsync(string userId, int slotId)
+        {
+            var doctor = await _context.Doctors
+                .FirstOrDefaultAsync(d => d.UserId == userId);
+
+            if (doctor == null)
+                throw new Exception("Doctor not found");
+
+            var slot = await _context.AppointmentSlots
+                .FirstOrDefaultAsync(s => s.Id == slotId);
+
+            if (slot == null)
+                throw new Exception("Slot not found");
+
+            if (slot.DoctorId != doctor.Id)
+                throw new Exception("Unauthorized");
+            if (slot.IsBooked)
+                throw new BadRequestException("Slot already booked");
+            if (!slot.IsBlocked)
+                throw new BadRequestException("Slot isn't blocked yet!");
+
+
+            slot.IsBlocked = false;
+
+            await _context.SaveChangesAsync();
+        }
+
+
     }
 }
