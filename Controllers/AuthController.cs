@@ -104,7 +104,7 @@ namespace DoctorAppointmentSystem.Controllers
             if (user == null || !await _userManager.CheckPasswordAsync(user, dto.Password))
                 throw new UnauthorizedAccessException("Invalid credentials");
 
-            var accessToken = _tokenService.GenerateAccessToken(user);
+            var accessToken =await _tokenService.GenerateAccessToken(user);
             var refreshToken = _tokenService.GenerateRefreshToken(user.Id);
 
             _context.RefreshTokens.Add(refreshToken);
