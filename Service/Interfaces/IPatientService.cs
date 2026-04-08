@@ -6,5 +6,8 @@ namespace DoctorAppointmentSystem.Service.Interfaces
     {
         Task<string> CompleteProfileAsync(string userId, PatientProfileDTO model);
         Task<string> UpdateProfileAsync(string userId, PatientProfileDTO model);
+        Task<List<DoctorListDTO>> GetDoctorsAsync();
+        Task<List<DoctorListDTO>> SearchDoctorsAsync(DoctorFilterDTO filter);
+        Task<DoctorProfileViewDTO?> GetDoctorByIdAsync(int id);
     }
 }

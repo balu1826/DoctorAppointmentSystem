@@ -40,6 +40,10 @@ namespace DoctorAppointmentSystem.DB
                 .WithMany(d => d.Availabilities)
                 .HasForeignKey(a => a.DoctorId)
                 .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<AppointmentSlot>()
+                .HasOne(s => s.Doctor)
+                .WithMany(d => d.AppointmentSlot)
+                .HasForeignKey(s => s.DoctorId);
         }
     }
 }
