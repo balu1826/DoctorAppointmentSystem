@@ -21,7 +21,9 @@ namespace DoctorAppointmentSystem.DB
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
-
+            modelBuilder.Entity<Doctor>()
+                .Property(d => d.ConsultationFee)
+                .HasPrecision(10, 2);
             modelBuilder.Entity<Notification>()
                 .HasOne(n => n.CreatedByUser)
                 .WithMany()

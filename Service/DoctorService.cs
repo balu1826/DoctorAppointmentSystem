@@ -6,6 +6,7 @@ using DoctorAppointmentSystem.Model.Enums;
 using DoctorAppointmentSystem.Service.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.Numerics;
 
 namespace DoctorAppointmentSystem.Service
 {
@@ -34,6 +35,7 @@ namespace DoctorAppointmentSystem.Service
             //  Update instead of creating new
             existingDoctor.Specialization = dto.Specialization;
             existingDoctor.ExperienceYears = dto.ExperienceYears;
+            existingDoctor.ConsultationFee = dto.ConsultationFee;
             existingDoctor.VerificationStatus = VerificationStatus.Pending;
             existingDoctor.IsApproved = false;
 
@@ -67,6 +69,7 @@ namespace DoctorAppointmentSystem.Service
             //  Update fields
             doctor.Specialization = dto.Specialization;
             doctor.ExperienceYears = dto.ExperienceYears;
+            doctor.ConsultationFee = dto.ConsultationFee;
 
             //  Reset verification
             doctor.VerificationStatus = VerificationStatus.Pending;

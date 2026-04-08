@@ -9,5 +9,9 @@ namespace DoctorAppointmentSystem.DTO
 
         [Range(0, 60)]
         public int ExperienceYears { get; set; }
+
+        [Required]
+        [Range(0, 100000, ErrorMessage = "Consultation fee must be between 0 and 100000")]
+        public decimal ConsultationFee { get; set; }
     }
 }
