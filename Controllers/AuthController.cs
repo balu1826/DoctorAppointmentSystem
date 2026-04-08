@@ -2,9 +2,11 @@
 using DoctorAppointmentSystem.DTO;
 using DoctorAppointmentSystem.Model;
 using DoctorAppointmentSystem.Service;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace DoctorAppointmentSystem.Controllers
 {
@@ -95,31 +97,83 @@ namespace DoctorAppointmentSystem.Controllers
 
 
         [HttpPost("login")]
-        public async Task<IActionResult> Login(LoginRequest model)
+        public async Task<IActionResult> Login(LoginRequest dto)
         {
-            var user = await _userManager.FindByEmailAsync(model.Email);
+            var user = await _userManager.FindByEmailAsync(dto.Email);
 
-            if (user == null)
-                return Unauthorized("Invalid email or password");
+            if (user == null || !await _userManager.CheckPasswordAsync(user, dto.Password))
+                throw new UnauthorizedAccessException("Invalid credentials");
 
-            var result = await _signInManager.CheckPasswordSignInAsync(user, model.Password, false);
+            var accessToken = _tokenService.GenerateAccessToken(user);
+            var refreshToken = _tokenService.GenerateRefreshToken(user.Id);
 
-            if (!result.Succeeded)
-                return Unauthorized("Invalid email or password");
+            _context.RefreshTokens.Add(refreshToken);
+            await _context.SaveChangesAsync();
 
-            var roles = await _userManager.GetRolesAsync(user);
-
-            var token = _tokenService.CreateToken(user, roles);
-
-            return Ok(new
+            return Ok(new ApiResponse<object>
             {
-                Token = token,
-                Email = user.Email,
-                Roles = roles
+                Success = true,
+                Message = "Login successful",
+                StatusCode = 200,
+                Data = new
+                {
+                    accessToken,
+                    refreshToken = refreshToken.Token
+                }
+            });
+        }
+
+        [Authorize]
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout()
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            var tokens = await _context.RefreshTokens
+                .Where(x => x.UserId == userId)
+                .ToListAsync();
+
+            foreach (var token in tokens)
+            {
+                token.IsRevoked = true;
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new ApiResponse<string>
+            {
+                Success = true,
+                Message = "Logged out successfully",
+                StatusCode = 200
             });
         }
 
 
+        [HttpPost("refresh")]
+        public async Task<IActionResult> RefreshToken([FromBody] string refreshToken)
+        {
+            var token = await _context.RefreshTokens
+                .FirstOrDefaultAsync(x => x.Token == refreshToken);
+
+            if (token == null || token.IsRevoked || token.ExpiryDate < DateTime.UtcNow)
+                throw new UnauthorizedAccessException("Invalid refresh token");
+
+            var user = await _userManager.FindByIdAsync(token.UserId);
+            if(user == null)
+                throw new UnauthorizedAccessException("User not found");
+
+            var newAccessToken = _tokenService.GenerateAccessToken(user);
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Token refreshed",
+                StatusCode = 200,
+                Data = new { accessToken = newAccessToken }
+            });
+        }
+
+      
         [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword(ForgotPasswordRequest model)
         {
