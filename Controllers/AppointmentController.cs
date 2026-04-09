@@ -3,11 +3,12 @@ using DoctorAppointmentSystem.DTO;
 using DoctorAppointmentSystem.Service.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace DoctorAppointmentSystem.Controllers
 {
     [ApiController]
-    [Authorize("Patient")]
+    [Authorize(Roles = "Patient")]
     [Route("api/[controller]")]
     public class AppointmentController : ControllerBase
     {
@@ -22,7 +23,7 @@ namespace DoctorAppointmentSystem.Controllers
         public async Task<IActionResult> BookAppointment([FromBody] BookAppointmentDTO model)
         {
             //  Get patientId from JWT token
-            var patientId = User.FindFirst("id")?.Value;
+            var patientId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value!; ;
 
             if (string.IsNullOrEmpty(patientId))
                 return Unauthorized("User not authenticated");

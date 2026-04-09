@@ -3,6 +3,7 @@ using DoctorAppointmentSystem.Model;
 using DoctorAppointmentSystem.Model.Enums;
 using DoctorAppointmentSystem.Service.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 namespace DoctorAppointmentSystem.Service
 {
     public class AppointmentService:IAppointmentService
@@ -44,11 +45,18 @@ namespace DoctorAppointmentSystem.Service
                     .Where(s => s.Id == slotId)
                     .Select(s => s.Doctor!.UserId)
                     .FirstOrDefaultAsync();
-
+                if(doctorUserId == null)
+                {
+                    await transaction.RollbackAsync();
+                    return "Doctor not found for the selected slot";
+                }
+                
                 //  Create notification for doctor
                 var notification = new Notification
                 {
-                    TargetUserId = doctorUserId!,
+                    CreatedByUserId =patientId,
+                    ReferenceId=slotId,
+                    TargetUserId = doctorUserId,
                     Title = "New Appointment Request",
                     Message = "You have a new appointment request from a patient"
                 };
