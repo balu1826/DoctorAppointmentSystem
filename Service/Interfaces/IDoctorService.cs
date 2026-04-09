@@ -11,5 +11,10 @@ namespace DoctorAppointmentSystem.Service.Interfaces
         Task<List<DoctorSlotDTO>> GetDoctorSlotsAsync(string userId);
         Task BlockSlotAsync(string userId, int slotId);
         Task UnblockSlotAsync(string userId, int slotId);
+        Task<string> AcceptAppointmentAsync(int appointmentId, string doctorUserId);
+        Task<string> RejectAppointmentAsync(int appointmentId, string doctorUserId);
+        Task<string> CompleteAppointmentAsync(int appointmentId, string doctorUserId);
+        Task<DoctorAppointmentsDTO> GetDoctorAppointmentsAsync(string doctorUserId);
+
     }
 }

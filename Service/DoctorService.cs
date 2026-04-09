@@ -287,7 +287,154 @@ namespace DoctorAppointmentSystem.Service
 
             await _context.SaveChangesAsync();
         }
+        //  Doctor accepts appointment (from booked to accepted)
+        public async Task<string> AcceptAppointmentAsync(int appointmentId, string doctorUserId)
+        {
+            var appointment = await _context.Appointments
+                .Include(a => a.Slot)
+                .ThenInclude(s => s!.Doctor)
+                .FirstOrDefaultAsync(a => a.Id == appointmentId);
 
+
+            if (appointment == null)
+                return "Appointment not found";
+            else if (appointment.Slot!.Doctor!.UserId != doctorUserId)
+                return "Unauthorized";
+
+            else if (appointment.Slot != null&&appointment.Slot.StartDateTime <= DateTime.UtcNow)
+                return "Cannot accept appointment after slot time";
+
+            if (appointment.Status != AppointmentStatus.Booked)
+                return "Only booked appointments can be accepted";
+
+            appointment.Status = AppointmentStatus.Accepted;
+            appointment.UpdatedAt = DateTime.UtcNow;
+
+            // Notify patient
+            var notification = new Notification
+            {
+                TargetUserId = appointment.PatientId,
+                CreatedByUserId = doctorUserId,
+                Title = "Appointment Accepted",
+                Message = "Your appointment has been accepted by the doctor"
+            };
+
+            _context.Notifications.Add(notification);
+
+            await _context.SaveChangesAsync();
+
+            return "Appointment accepted";
+        }
+        //  Doctor rejects appointment (from booked to rejected)
+        public async Task<string> RejectAppointmentAsync(int appointmentId, string doctorUserId)
+        {
+            var appointment = await _context.Appointments
+                .Include(a => a.Slot)
+                .ThenInclude(s => s!.Doctor)
+                .FirstOrDefaultAsync(a => a.Id == appointmentId);
+
+            if (appointment == null)
+                return "Appointment not found";
+            else if (appointment.Slot!.Doctor!.UserId != doctorUserId)
+                return "Unauthorized";
+
+            if (appointment.Status != AppointmentStatus.Booked)
+                return "Only booked appointments can be rejected";
+
+            appointment.Status = AppointmentStatus.Rejected;
+            appointment.UpdatedAt = DateTime.UtcNow;
+
+            //  FREE THE SLOT
+            appointment.Slot.IsBooked = false;
+
+            //  Notify patient
+            var notification = new Notification
+            {
+                CreatedByUserId=doctorUserId,
+                TargetUserId = appointment.PatientId,
+                Title = "Appointment Rejected",
+                Message = "Your appointment has been rejected by the doctor"
+            };
+
+            _context.Notifications.Add(notification);
+
+            await _context.SaveChangesAsync();
+
+            return "Appointment rejected";
+        }
+        //  Doctor completes appointment (from accepted to completed)
+        public async Task<string> CompleteAppointmentAsync(int appointmentId, string doctorUserId)
+        {
+            var appointment = await _context.Appointments
+                .Include(a => a.Slot)
+                .ThenInclude(s => s!.Doctor)
+                .FirstOrDefaultAsync(a => a.Id == appointmentId);
+
+            if (appointment == null)
+                return "Appointment not found";
+
+            else if (appointment.Slot!.Doctor!.UserId != doctorUserId)
+                return "Unauthorized";
+
+            if (appointment.Status != AppointmentStatus.Accepted)
+                return "Only accepted appointments can be completed";
+            if (appointment.Slot.EndDateTime > DateTime.UtcNow)
+                return "Cannot complete appointment before slot end time";
+
+            appointment.Status = AppointmentStatus.Completed;
+            appointment.UpdatedAt = DateTime.UtcNow;
+            var notification = new Notification
+            {
+                TargetUserId = appointment.PatientId,
+                CreatedByUserId = doctorUserId,
+                Title = "Appointment Completed",
+                Message = "Your appointment has been successfully completed"
+            };
+
+            _context.Notifications.Add(notification);
+
+            await _context.SaveChangesAsync();
+
+            return "Appointment completed";
+        }
+        //  Get doctor's appointments (both upcoming and completed)
+        public async Task<DoctorAppointmentsDTO> GetDoctorAppointmentsAsync(string doctorUserId)
+        {
+            var now = DateTime.UtcNow;
+
+            var appointments = await _context.Appointments
+                .Include(a => a.Slot)
+                .ThenInclude(s => s!.Doctor)
+                .Where(a => a.Slot!.Doctor!.UserId == doctorUserId)
+                .Select(a => new DoctorAppointmentItemDTO
+                {
+                    AppointmentId = a.Id,
+                    PatientId = a.PatientId,
+                    StartTime = a.Slot!.StartDateTime,
+                    EndTime = a.Slot.EndDateTime,
+                    Status = a.Status
+                })
+                .ToListAsync();
+
+            var result = new DoctorAppointmentsDTO
+            {
+                //  Upcoming 
+                UpcomingAppointments = appointments
+                    .Where(a => a.StartTime > now &&
+                                a.Status != AppointmentStatus.Cancelled &&
+                                a.Status != AppointmentStatus.Rejected)
+                    .OrderBy(a => a.StartTime)
+                    .ToList(),
+
+                //  Completed 
+                CompletedAppointments = appointments
+                    .Where(a => a.Status == AppointmentStatus.Completed)
+                    .OrderByDescending(a => a.StartTime)
+                    .ToList()
+            };
+
+            return result;
+        }
 
     }
 }

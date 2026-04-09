@@ -1,5 +1,6 @@
 ﻿using DoctorAppointmentSystem.DTO;
 using DoctorAppointmentSystem.Exceptions;
+using DoctorAppointmentSystem.Service;
 using DoctorAppointmentSystem.Service.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -147,6 +148,60 @@ namespace DoctorAppointmentSystem.Controllers
                 return StatusCode(500, new { message = "Something went wrong" });
 
             }
+        }
+
+        [HttpPut("{id}/accept")]
+        public async Task<IActionResult> Accept(int id)
+        {
+            var doctorId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(doctorId))
+            {
+                return Unauthorized("User not authenticated");
+            }
+
+            var result = await _doctorService.AcceptAppointmentAsync(id, doctorId);
+
+            return result.Contains("accepted") ? Ok(result) : BadRequest(result);
+        }
+
+        [HttpPut("{id}/reject")]
+        public async Task<IActionResult> Reject(int id)
+        {
+            var doctorId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(doctorId))
+            {
+                return Unauthorized("User not authenticated");
+            }
+            var result = await _doctorService.RejectAppointmentAsync(id, doctorId);
+
+            return result.Contains("rejected") ? Ok(result) : BadRequest(result);
+        }
+
+        [HttpPut("{id}/complete")]
+        public async Task<IActionResult> Complete(int id)
+        {
+            var doctorId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(doctorId))
+            {
+                return Unauthorized("User not authenticated");
+            }
+
+            var result = await _doctorService.CompleteAppointmentAsync(id, doctorId);
+
+            return result.Contains("completed") ? Ok(result) : BadRequest(result);
+        }
+
+        [HttpGet("doctor/appointments")]
+        public async Task<IActionResult> GetDoctorAppointments()
+        {
+            var doctorUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(doctorUserId))
+                return Unauthorized();
+
+            var result = await _doctorService.GetDoctorAppointmentsAsync(doctorUserId);
+
+            return Ok(result);
         }
     }
 }

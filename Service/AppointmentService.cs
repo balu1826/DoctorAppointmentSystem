@@ -21,6 +21,23 @@ namespace DoctorAppointmentSystem.Service
 
             try
             {
+
+                var slot = await _context.AppointmentSlots
+           .Where(s => s.Id == slotId)
+           .Select(s => new
+           {
+               s.Id,
+               s.StartDateTime,
+               s.IsBooked,
+               s.IsBlocked
+           })
+           .FirstOrDefaultAsync();
+
+                if (slot == null)
+                    return "Slot not found";
+
+               
+
                 //  ATOMIC UPDATE (prevents race condition)
                 var rowsAffected = await _context.AppointmentSlots
                     .Where(s => s.Id == slotId && !s.IsBooked && !s.IsBlocked)
@@ -28,6 +45,10 @@ namespace DoctorAppointmentSystem.Service
 
                 if (rowsAffected == 0)
                     return "Slot is already booked or unavailable";
+                // Time validation 
+                if (slot.StartDateTime <= DateTime.UtcNow)
+                    return "Cannot book appointment after slot start time";
+
 
                 // Create appointment
                 var appointment = new Appointment
