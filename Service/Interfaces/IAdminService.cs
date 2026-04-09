@@ -6,5 +6,6 @@ namespace DoctorAppointmentSystem.Service.Interfaces
     {
         Task ApproveDoctorAsync(int notificationId);
         Task RejectDoctorAsync(int notificationId, RejectDoctorDto dto);
+        Task<List<AdminAppointmentDTO>> GetAllAppointmentsAsync();
     }
 }

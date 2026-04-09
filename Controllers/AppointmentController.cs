@@ -36,5 +36,30 @@ namespace DoctorAppointmentSystem.Controllers
 
             return BadRequest(new { message = result });
         }
+
+        [HttpPut("{id}/cancel")]
+        public async Task<IActionResult> Cancel(int id)
+        {
+            var patientId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(patientId))
+                return Unauthorized();
+
+            var result = await _appointmentService.CancelAppointmentAsync(id, patientId);
+
+            return result.Contains("success") ? Ok(result) : BadRequest(result);
+        }
+        [HttpPut("{id}/reschedule")]
+        public async Task<IActionResult> Reschedule(int id, [FromBody] int newSlotId)
+        {
+            var patientId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(patientId))
+                return Unauthorized();
+
+            var result = await _appointmentService.RescheduleAppointmentAsync(id, newSlotId, patientId);
+
+            return result.Contains("success") ? Ok(result) : BadRequest(result);
+        }
     }
 }

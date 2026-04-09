@@ -9,5 +9,7 @@ namespace DoctorAppointmentSystem.Service.Interfaces
         Task<List<DoctorListDTO>> GetDoctorsAsync();
         Task<List<DoctorListDTO>> SearchDoctorsAsync(DoctorFilterDTO filter);
         Task<DoctorProfileViewDTO?> GetDoctorByIdAsync(int id);
+        Task<PatientAppointmentsDTO> GetPatientAppointmentsAsync(string patientId);
+
     }
 }

@@ -1,5 +1,6 @@
 ﻿using DoctorAppointmentSystem.DB;
 using DoctorAppointmentSystem.DTO;
+using DoctorAppointmentSystem.Model.Enums;
 using DoctorAppointmentSystem.Service.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -158,6 +159,47 @@ namespace DoctorAppointmentSystem.Service
                     ConsultationFee = d.ConsultationFee,
                 })
                 .FirstOrDefaultAsync();
+        }
+        //To get patient appointments (upcoming and completed)
+        public async Task<PatientAppointmentsDTO> GetPatientAppointmentsAsync(string patientId)
+        {
+            var now = DateTime.UtcNow;
+
+            var appointments = await _context.Appointments
+                .Include(a => a.Slot)
+                .ThenInclude(s => s!.Doctor)
+                .ThenInclude(d => d!.User)
+                .Where(a => a.PatientId == patientId)
+                .Select(a => new PatientAppointmentItemDTO
+                {
+                    AppointmentId = a.Id,
+                    DoctorName = a.Slot!.Doctor!.User!.FullName,
+                    Specialization = a.Slot.Doctor.Specialization,
+                    StartTime = a.Slot.StartDateTime,
+                    EndTime = a.Slot.EndDateTime,
+                    ConsultationFee = a.Slot.Doctor.ConsultationFee,
+                    Status = a.Status
+                })
+                .ToListAsync();
+
+            var result = new PatientAppointmentsDTO
+            {
+                //  Upcoming
+                UpcomingAppointments = appointments
+                    .Where(a => a.StartTime > now &&
+                                a.Status != AppointmentStatus.Cancelled &&
+                                a.Status != AppointmentStatus.Rejected)
+                    .OrderBy(a => a.StartTime)
+                    .ToList(),
+
+                //  Completed
+                CompletedAppointments = appointments
+                    .Where(a => a.Status == AppointmentStatus.Completed)
+                    .OrderByDescending(a => a.StartTime)
+                    .ToList()
+            };
+
+            return result;
         }
     }
 }

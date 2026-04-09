@@ -62,5 +62,18 @@ namespace DoctorAppointmentSystem.Controllers
 
             return Ok(doctor);
         }
+
+        [HttpGet("my/appointments")]
+        public async Task<IActionResult> GetMyAppointments()
+        {
+            var patientId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(patientId))
+                return Unauthorized();
+
+            var result = await _patientService.GetPatientAppointmentsAsync(patientId);
+
+            return Ok(result);
+        }
     }
 }
