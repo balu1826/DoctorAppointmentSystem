@@ -35,6 +35,11 @@ namespace DoctorAppointmentSystem.Service
             patient.DateOfBirth = model.DateOfBirth;
             patient.Gender = model.Gender;
             patient.IsVerified = true;
+            await _adminService.LogAsync(
+               "Profile Verified",
+                userId,
+                "Patient"
+           );
 
             await _context.SaveChangesAsync();
 
@@ -136,6 +141,7 @@ namespace DoctorAppointmentSystem.Service
                     .Where(s =>
                         !s.IsBooked &&
                         !s.IsBlocked &&
+                        s.StartDateTime > DateTime.UtcNow &&
                         (!date.HasValue || s.StartDateTime.Date == date.Value) &&
                         (!time.HasValue ||
                             (s.StartDateTime.TimeOfDay <= time &&
@@ -208,5 +214,6 @@ namespace DoctorAppointmentSystem.Service
 
             return result;
         }
+
     }
 }

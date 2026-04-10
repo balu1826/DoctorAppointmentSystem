@@ -10,10 +10,12 @@ namespace DoctorAppointmentSystem.Service
     {
         
         private readonly AppDbContext _context;
+        private readonly IAdminService _adminService;
 
-        public AppointmentService(AppDbContext context)
+        public AppointmentService(AppDbContext context, IAdminService adminService )
         {
             _context = context;
+            _adminService = adminService;
         }
         public async Task<string> BookAppointmentAsync(string patientId, int slotId)
         {
@@ -83,6 +85,12 @@ namespace DoctorAppointmentSystem.Service
                 };
 
                 _context.Notifications.Add(notification);
+                await _adminService.LogAsync(
+               "Appointment Booked",
+                patientId,
+                "Appointment",
+                slotId
+           );
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
@@ -145,7 +153,12 @@ namespace DoctorAppointmentSystem.Service
                     Message = "Patient has cancelled the appointment"
                 });
             }
-
+            await _adminService.LogAsync(
+                 "Appointment Cancelled",
+                 patientId,
+                "Appointment",
+                appointmentId
+            );
             await _context.SaveChangesAsync();
 
             return "Appointment cancelled successfully";
@@ -224,6 +237,13 @@ namespace DoctorAppointmentSystem.Service
                         Message = "Patient has rescheduled the appointment"
                     });
                 }
+
+                await _adminService.LogAsync(
+                    "Appointment Rescheduled",
+                     patientId,
+                    "Appointment",
+                    appointmentId
+                    );
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
