@@ -44,8 +44,19 @@ namespace DoctorAppointmentSystem.Controllers
             {
                 return Unauthorized("User not authenticated");
             }
-
-            await _doctorService.UpdateDoctorProfileAsync(userId, dto);
+            try
+            {
+                await _doctorService.UpdateDoctorProfileAsync(userId, dto);
+            }
+            catch(BadRequestException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Something went wrong" });
+            }
+            
 
             return Ok("Profile submitted for re-verification");
         }

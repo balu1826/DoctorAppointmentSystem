@@ -48,6 +48,14 @@ namespace DoctorAppointmentSystem.Service
                 Message = "Your profile has been approved",
                 Type = NotificationType.DoctorApproved
             };
+            //Audit log 
+            await LogAsync(
+            "Doctor Approved",
+             "Admin",
+             "Doctor",
+             null,
+             "Admin Approved Doctor Profile"
+            );
 
             _context.Notifications.Add(newNotification);
 
@@ -81,6 +89,14 @@ namespace DoctorAppointmentSystem.Service
                 Message = $"Rejected: {dto.Reason}",
                 Type = NotificationType.DoctorRejected
             };
+            //Audit log
+            await LogAsync(
+          "Doctor Rejected",
+           "Admin",
+           "Doctor",
+           null,
+           "Admin Rejected Doctor Profile"
+          );
 
             _context.Notifications.Add(newNotification);
 
@@ -175,6 +191,13 @@ namespace DoctorAppointmentSystem.Service
                 return "User not found";
 
             user.IsActive = !user.IsActive;
+            await LogAsync(
+          "Profile De/Activation",
+           "Admin",
+           "ApplicationUser",
+           null,
+           "Admin Changed activeness of user Profile"
+          );
 
             await _context.SaveChangesAsync();
 

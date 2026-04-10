@@ -14,11 +14,13 @@ namespace DoctorAppointmentSystem.Service
     {
         private readonly AppDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IAdminService _adminService;
 
-        public DoctorService(AppDbContext context, UserManager<ApplicationUser> userManager)
+        public DoctorService(AppDbContext context, UserManager<ApplicationUser> userManager, IAdminService adminService)
         {
             _context = context;
             _userManager = userManager;
+            _adminService = adminService;
         }
 
         public async Task SubmitDoctorProfileAsync(string userId, DoctorProfileDto dto)
@@ -54,6 +56,11 @@ namespace DoctorAppointmentSystem.Service
             };
 
             _context.Notifications.Add(notification);
+            await _adminService.LogAsync(
+            "Doctor Verification Request",
+             userId,
+             "Doctor"
+            );
 
             await _context.SaveChangesAsync();
         }
@@ -65,6 +72,8 @@ namespace DoctorAppointmentSystem.Service
 
             if (doctor == null)
                 throw new Exception("Doctor profile not found");
+            if(!doctor.IsApproved)
+                throw new BadRequestException("Doctor profile not approved yet");
 
             //  Update fields
             doctor.Specialization = dto.Specialization;
@@ -89,9 +98,14 @@ namespace DoctorAppointmentSystem.Service
                 ReferenceId = doctor.Id
             };
 
+
             _context.Notifications.Add(notification);
 
-            //  Single save (best practice)
+            await _adminService.LogAsync(
+                "Doctor Re-Verification Request",
+                userId,
+                "Doctor"
+                );
             await _context.SaveChangesAsync();
         }
 
@@ -137,7 +151,14 @@ namespace DoctorAppointmentSystem.Service
 
                 _context.DoctorAvailability.Add(availability);
             }
-
+            //Audit log
+            await _adminService.LogAsync(
+         "Availability Updates",
+          userId,
+          "Doctor",
+          null,
+          "Doctor set availability for " + dto.DayOfWeek.ToString()
+         );
             await _context.SaveChangesAsync();
         }
 
@@ -204,6 +225,13 @@ namespace DoctorAppointmentSystem.Service
             if (slotsToAdd.Any())
             {
                 _context.AppointmentSlots.AddRange(slotsToAdd);
+                await _adminService.LogAsync(
+                 "Slots Generation",
+                  userId,
+                  "AppointmentSlots",
+                  null,
+                  "Doctor generated " + slotsToAdd.Count + " slots"
+                 );
                 await _context.SaveChangesAsync();
             }
         }
@@ -257,7 +285,14 @@ namespace DoctorAppointmentSystem.Service
                 throw new BadRequestException("Slot already blocked");
 
             slot.IsBlocked = true;
-
+            //Audit log
+            await _adminService.LogAsync(
+             "Block Slot",
+              userId,
+              "AppointmentSlots",
+              slotId,
+              "Doctor blocked slot  "
+             );
             await _context.SaveChangesAsync();
         }
 
@@ -284,7 +319,14 @@ namespace DoctorAppointmentSystem.Service
 
 
             slot.IsBlocked = false;
-
+            //Audit log
+            await _adminService.LogAsync(
+             "Un-Block Slot",
+              userId,
+              "AppointmentSlots",
+              slotId,
+              "Doctor unblocked slot  "
+             );
             await _context.SaveChangesAsync();
         }
         //  Doctor accepts appointment (from booked to accepted)
@@ -320,6 +362,14 @@ namespace DoctorAppointmentSystem.Service
             };
 
             _context.Notifications.Add(notification);
+            //Audit log
+            await _adminService.LogAsync(
+             "Accept Appointment",
+              doctorUserId,
+              "Appointment",
+              appointmentId,
+              "Doctor Accepted Appointment "
+             );
 
             await _context.SaveChangesAsync();
 
@@ -357,6 +407,15 @@ namespace DoctorAppointmentSystem.Service
             };
 
             _context.Notifications.Add(notification);
+            
+            //Audit log
+            await _adminService.LogAsync(
+             "Reject Appointment",
+              doctorUserId,
+              "Appointment",
+              appointmentId,
+              "Doctor Rejected Appointment "
+             );
 
             await _context.SaveChangesAsync();
 
@@ -392,6 +451,15 @@ namespace DoctorAppointmentSystem.Service
             };
 
             _context.Notifications.Add(notification);
+            
+            //Audit log
+            await _adminService.LogAsync(
+             "Complete Appointment",
+              doctorUserId,
+              "Appointment",
+              appointmentId,
+              "Doctor Completed Appointment "
+             );
 
             await _context.SaveChangesAsync();
 
