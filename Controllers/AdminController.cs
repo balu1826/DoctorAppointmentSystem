@@ -43,11 +43,17 @@ namespace DoctorAppointmentSystem.Controllers
                 message = "Doctor rejected successfully"
             });
         }
-        
+
         [HttpGet("get/All/Appointments")]
         public async Task<AdminAppointmentsResponseDTO> GetAllAppointmentsAsync()
         {
             return await _adminService.GetAllAppointmentsAsync();
+        }
+
+        [HttpGet("get/All/Users")]
+        public async Task<List<UserDTO>> GetAllUsersAsync()
+        {
+            return await _adminService.GetAllUsersAsync();
         }
     }
 }

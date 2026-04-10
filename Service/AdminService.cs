@@ -3,6 +3,7 @@ using DoctorAppointmentSystem.DTO;
 using DoctorAppointmentSystem.Model;
 using DoctorAppointmentSystem.Model.Enums;
 using DoctorAppointmentSystem.Service.Interfaces;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
@@ -11,10 +12,12 @@ namespace DoctorAppointmentSystem.Service
     public class AdminService : IAdminService
     {
         private readonly AppDbContext _context;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public AdminService(AppDbContext context)
+        public AdminService(AppDbContext context,UserManager<ApplicationUser> userManager)
         {
             _context = context;
+            _userManager = userManager;
         }
 
         public async Task ApproveDoctorAsync(int notificationId)
@@ -136,6 +139,30 @@ namespace DoctorAppointmentSystem.Service
                     .Select(x => x.DTO)
                     .ToList()
             };
+
+            return result;
+        }
+
+
+        public async Task<List<UserDTO>> GetAllUsersAsync()
+        {
+            var users = _context.Users.ToList();
+
+            var result = new List<UserDTO>();
+
+            foreach (var user in users)
+            {
+                var roles = await _userManager.GetRolesAsync(user);
+
+                result.Add(new UserDTO
+                {
+                    Id = user.Id,
+                    Name = user.FullName,
+                    Email = user!.Email!,
+                    IsActive = user.IsActive,
+                    Role = roles.FirstOrDefault() ?? ""
+                });
+            }
 
             return result;
         }
