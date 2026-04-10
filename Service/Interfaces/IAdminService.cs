@@ -9,5 +9,7 @@ namespace DoctorAppointmentSystem.Service.Interfaces
         Task<AdminAppointmentsResponseDTO> GetAllAppointmentsAsync();
         Task<List<UserDTO>> GetAllUsersAsync();
         Task<string> ToggleUserStatusAsync(string userId);
+        Task LogAsync(string action, string userId, string entityType, int? referenceId=null, string? description = null);
+        Task<List<AuditLogDTO>> GetAuditLogsAsync();
     }
 }

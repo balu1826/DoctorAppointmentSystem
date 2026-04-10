@@ -1,5 +1,6 @@
 ﻿using DoctorAppointmentSystem.DB;
 using DoctorAppointmentSystem.DTO;
+using DoctorAppointmentSystem.Model;
 using DoctorAppointmentSystem.Model.Enums;
 using DoctorAppointmentSystem.Service.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -9,10 +10,11 @@ namespace DoctorAppointmentSystem.Service
     public class PatientService : IPatientService
     {
         private readonly AppDbContext _context;
-
-        public PatientService(AppDbContext context)
+        private readonly IAdminService _adminService;
+        public PatientService(AppDbContext context, IAdminService adminService)
         {
             _context = context;
+            _adminService = adminService;
         }
 
         public async Task<string> CompleteProfileAsync(string userId, PatientProfileDTO model)
@@ -53,6 +55,11 @@ namespace DoctorAppointmentSystem.Service
             patient.BloodGroup = model.BloodGroup;
             patient.DateOfBirth = model.DateOfBirth;
             patient.Gender = model.Gender;
+            await _adminService.LogAsync(
+                "Profile Updated",
+                 userId,
+                 "Patient"     
+            );
 
             await _context.SaveChangesAsync();
 
@@ -62,12 +69,12 @@ namespace DoctorAppointmentSystem.Service
         public async Task<List<DoctorListDTO>> GetDoctorsAsync()
         {
             return await _context.Doctors
-       .Include(d => d.User) 
+       .Include(d => d.User)
        .Where(d => d.IsApproved)
        .Select(d => new DoctorListDTO
        {
            Id = d.Id,
-           Name = d.User!.FullName, 
+           Name = d.User!.FullName,
            Specialization = d.Specialization,
            Experience = d.ExperienceYears,
            ConsultationFee = d.ConsultationFee
@@ -134,7 +141,7 @@ namespace DoctorAppointmentSystem.Service
                             (s.StartDateTime.TimeOfDay <= time &&
                              s.EndDateTime.TimeOfDay >= time))
                     )
-                    .OrderBy(s => s.StartDateTime) 
+                    .OrderBy(s => s.StartDateTime)
                     .Select(s => new AppointmentSlotDTO
                     {
                         SlotId = s.Id,
@@ -152,7 +159,7 @@ namespace DoctorAppointmentSystem.Service
                 .Where(d => d.Id == id && d.IsApproved)
                 .Select(d => new DoctorProfileViewDTO
                 {
-                  
+
                     Name = d.User!.FullName,
                     Specialization = d.Specialization,
                     Experience = d.ExperienceYears,

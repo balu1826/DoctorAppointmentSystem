@@ -180,5 +180,37 @@ namespace DoctorAppointmentSystem.Service
 
             return user.IsActive ? "User activated" : "User deactivated";
         }
+        // Admin can view all user's activities method to log activities
+        public async Task LogAsync(string action, string userId, string entityType, int? referenceId, string? description = null)
+        {
+            var log = new AuditLog
+            {
+                Action = action,
+                PerformedByUserId = userId,
+                EntityType = entityType,
+                ReferenceId = referenceId,
+                Description = description
+            };
+
+            _context.AuditLogs.Add(log);
+            await _context.SaveChangesAsync();
+        }
+        // Admin can view audit logs
+        public async Task<List<AuditLogDTO>> GetAuditLogsAsync()
+        {
+            return await _context.AuditLogs
+                .OrderByDescending(x => x.CreatedAt)
+                .Select(x => new AuditLogDTO
+                {
+                    Id = x.Id,
+                    Action = x.Action,
+                    UserId = x.PerformedByUserId,
+                    EntityType = x.EntityType,
+                    ReferenceId = x.ReferenceId,
+                    Description = x.Description,
+                    CreatedAt = x.CreatedAt
+                })
+                .ToListAsync();
+        }
     }
 }
