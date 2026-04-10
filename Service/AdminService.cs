@@ -1,9 +1,10 @@
-﻿using DoctorAppointmentSystem.Model;
+﻿using DoctorAppointmentSystem.DB;
+using DoctorAppointmentSystem.DTO;
+using DoctorAppointmentSystem.Model;
 using DoctorAppointmentSystem.Model.Enums;
 using DoctorAppointmentSystem.Service.Interfaces;
-using DoctorAppointmentSystem.DB;
 using Microsoft.EntityFrameworkCore;
-using DoctorAppointmentSystem.DTO;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace DoctorAppointmentSystem.Service
 {
@@ -83,32 +84,60 @@ namespace DoctorAppointmentSystem.Service
             await _context.SaveChangesAsync();
         }
         //Get all appointments for admin dashboard
-        public async Task<List<AdminAppointmentDTO>> GetAllAppointmentsAsync()
+        public async Task<AdminAppointmentsResponseDTO> GetAllAppointmentsAsync()
         {
-            return await _context.Appointments
-    .Include(a => a.Slot)
-        .ThenInclude(s => s!.Doctor)
-            .ThenInclude(d => d!.User)
-    .Join(_context.Users,
-        a => a.PatientId,
-        u => u.Id,
-        (a, u) => new { a, u })
-    .Select(x => new AdminAppointmentDTO
-    {
-        AppointmentId = x.a.Id,
-        DoctorName = x.a.Slot!.Doctor!.User!.FullName,
-        PatientName = x.u.FullName,
+            var now = DateTime.UtcNow;
 
-        StartTime = x.a.Slot.StartDateTime,
-        EndTime = x.a.Slot.EndDateTime,
-        Status = x.a.Status == AppointmentStatus.Booked ? "Pending Approval" :
-         x.a.Status == AppointmentStatus.Accepted ? "Confirmed" :
-         x.a.Status == AppointmentStatus.Rejected ? "Declined" :
-         x.a.Status == AppointmentStatus.Cancelled ? "Cancelled" :
-         x.a.Status == AppointmentStatus.Completed ? "Completed" :
-         "Unknown"
-    })
-    .ToListAsync();
+            var data = await _context.Appointments
+                .Include(a => a.Slot)
+                    .ThenInclude(s => s!.Doctor)
+                        .ThenInclude(d => d!.User)
+                .Join(_context.Users,
+                    a => a.PatientId,
+                    u => u.Id,
+                    (a, u) => new { a, u })
+                .Select(x => new
+                {
+                    x.a.Status,
+                    x.a.Slot!.StartDateTime,
+                    x.a.Slot.EndDateTime,
+
+                    DTO = new AdminAppointmentDTO
+                    {
+                        AppointmentId = x.a.Id,
+                        DoctorName = x.a.Slot!.Doctor!.User!.FullName,
+                        PatientName = x.u.FullName,
+
+                        StartTime = x.a.Slot.StartDateTime,
+                        EndTime = x.a.Slot.EndDateTime,
+
+                        Status = x.a.Status == AppointmentStatus.Booked ? "Pending Approval" :
+                                 x.a.Status == AppointmentStatus.Accepted ? "Confirmed" :
+                                 x.a.Status == AppointmentStatus.Rejected ? "Declined" :
+                                 x.a.Status == AppointmentStatus.Cancelled ? "Cancelled" :
+                                 x.a.Status == AppointmentStatus.Completed ? "Completed" :
+                                 "Unknown"
+                    }
+                })
+                .ToListAsync();
+
+            // Split into Past & Upcoming
+            var result = new AdminAppointmentsResponseDTO
+            {
+                PastAppointments = data
+                    .Where(x => x.Status == AppointmentStatus.Completed || x.EndDateTime < now)
+                    .OrderByDescending(x => x.EndDateTime)
+                    .Select(x => x.DTO)
+                    .ToList(),
+
+                UpcomingAppointments = data
+                    .Where(x => x.StartDateTime >= now)
+                    .OrderBy(x => x.StartDateTime)
+                    .Select(x => x.DTO)
+                    .ToList()
+            };
+
+            return result;
         }
     }
 }

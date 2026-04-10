@@ -45,7 +45,7 @@ namespace DoctorAppointmentSystem.Controllers
         }
         
         [HttpGet("get/All/Appointments")]
-        public async Task<List<AdminAppointmentDTO>> GetAllAppointmentsAsync()
+        public async Task<AdminAppointmentsResponseDTO> GetAllAppointmentsAsync()
         {
             return await _adminService.GetAllAppointmentsAsync();
         }
