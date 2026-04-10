@@ -143,7 +143,7 @@ namespace DoctorAppointmentSystem.Service
             return result;
         }
 
-
+        // Get all users for admin dashboard
         public async Task<List<UserDTO>> GetAllUsersAsync()
         {
             var users = _context.Users.ToList();
@@ -165,6 +165,20 @@ namespace DoctorAppointmentSystem.Service
             }
 
             return result;
+        }
+        // Admin can activate/deactivate user accounts
+        public async Task<string> ToggleUserStatusAsync(string userId)
+        {
+            var user = await _context.Users.FindAsync(userId);
+
+            if (user == null)
+                return "User not found";
+
+            user.IsActive = !user.IsActive;
+
+            await _context.SaveChangesAsync();
+
+            return user.IsActive ? "User activated" : "User deactivated";
         }
     }
 }

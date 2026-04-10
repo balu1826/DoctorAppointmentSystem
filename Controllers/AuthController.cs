@@ -104,6 +104,8 @@ namespace DoctorAppointmentSystem.Controllers
 
             if (user == null || !await _userManager.CheckPasswordAsync(user, dto.Password))
                 throw new BadRequestException("Invalid credentials");
+            if (!user.IsActive)
+                throw new BadRequestException("User account is inactive");
 
             var accessToken =await _tokenService.GenerateAccessToken(user);
             var refreshToken = _tokenService.GenerateRefreshToken(user.Id);

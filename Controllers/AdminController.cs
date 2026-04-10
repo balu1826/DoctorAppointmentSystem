@@ -55,5 +55,16 @@ namespace DoctorAppointmentSystem.Controllers
         {
             return await _adminService.GetAllUsersAsync();
         }
+
+        [HttpPut("users/{id}/toggle-status")]
+        public async Task<IActionResult> ToggleUserStatus(string id)
+        {
+            var result = await _adminService.ToggleUserStatusAsync(id);
+
+            if (result.Contains("not found"))
+                return NotFound(result);
+
+            return Ok(new { message = result });
+        }
     }
 }

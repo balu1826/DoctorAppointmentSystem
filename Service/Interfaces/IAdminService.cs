@@ -8,5 +8,6 @@ namespace DoctorAppointmentSystem.Service.Interfaces
         Task RejectDoctorAsync(int notificationId, RejectDoctorDto dto);
         Task<AdminAppointmentsResponseDTO> GetAllAppointmentsAsync();
         Task<List<UserDTO>> GetAllUsersAsync();
+        Task<string> ToggleUserStatusAsync(string userId);
     }
 }
