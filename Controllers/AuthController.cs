@@ -1,5 +1,6 @@
 ﻿using DoctorAppointmentSystem.DB;
 using DoctorAppointmentSystem.DTO;
+using DoctorAppointmentSystem.Service.Interfaces;
 using DoctorAppointmentSystem.Exceptions;
 using DoctorAppointmentSystem.Model;
 using DoctorAppointmentSystem.Service;
@@ -20,16 +21,19 @@ namespace DoctorAppointmentSystem.Controllers
         private readonly AppDbContext _context;
         private readonly TokenService _tokenService;
         private readonly SignInManager<ApplicationUser> _signInManager;
+        private readonly IAdminService _adminService;
         public AuthController(UserManager<ApplicationUser> userManager,
                       SignInManager<ApplicationUser> signInManager,
                       RoleManager<IdentityRole> roleManager,
                       AppDbContext context,
-                      TokenService tokenService)
+                      TokenService tokenService,
+                      IAdminService adminService)
         {
             _userManager = userManager;
             _roleManager = roleManager;
             _context = context;
             _signInManager = signInManager;
+            _adminService = adminService;
             _tokenService = tokenService;
 
         }
@@ -90,7 +94,11 @@ namespace DoctorAppointmentSystem.Controllers
 
                 _context.Patients.Add(patient);
             }
-
+            await _adminService.LogAsync(
+           "New Register",
+            user.Id,
+            "ApplicationUser"
+       );
             await _context.SaveChangesAsync();
 
             return Ok("User registered successfully");
@@ -111,6 +119,11 @@ namespace DoctorAppointmentSystem.Controllers
             var refreshToken = _tokenService.GenerateRefreshToken(user.Id);
 
             _context.RefreshTokens.Add(refreshToken);
+            await _adminService.LogAsync(
+                "Login",
+                 user.Id,
+                 "RefreshToken"
+            );
             await _context.SaveChangesAsync();
 
             return Ok(new ApiResponse<object>
@@ -131,7 +144,8 @@ namespace DoctorAppointmentSystem.Controllers
         public async Task<IActionResult> Logout()
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
+            if(userId == null)
+                return BadRequest("Invalid user");
             var tokens = await _context.RefreshTokens
                 .Where(x => x.UserId == userId)
                 .ToListAsync();
@@ -140,7 +154,11 @@ namespace DoctorAppointmentSystem.Controllers
             {
                 token.IsRevoked = true;
             }
-
+            await _adminService.LogAsync(
+             "Logout",
+             userId,
+             "ApplicationUser"
+              );
             await _context.SaveChangesAsync();
 
             return Ok(new ApiResponse<string>
@@ -184,12 +202,19 @@ namespace DoctorAppointmentSystem.Controllers
 
             // Do NOT reveal if user exists (security)
             if (user == null)
-                return Ok("If account exists, password reset link sent");
+                return Ok("Your account is not found");
 
             var token = await _userManager.GeneratePasswordResetTokenAsync(user);
 
-            // 🔥 In production → send email
-            // For now → return token
+            await _adminService.LogAsync(
+                "Forgot Password",
+                user.Id,
+                "ApplicationUser",
+                null,
+                "User requested password reset"
+            );
+            await _context.SaveChangesAsync();
+            // return token
             return Ok(new
             {
                 Message = "Reset token generated",
@@ -213,6 +238,14 @@ namespace DoctorAppointmentSystem.Controllers
 
             if (!result.Succeeded)
                 return BadRequest(result.Errors);
+            await _adminService.LogAsync(
+                "Password Reset",
+                user.Id,
+                "ApplicationUser",
+                null,
+                "User reset password successfully"
+            );
+            await _context.SaveChangesAsync();
 
             return Ok("Password reset successful");
         }
