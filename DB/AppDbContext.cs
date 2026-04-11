@@ -20,6 +20,7 @@ namespace DoctorAppointmentSystem.DB
         public DbSet<AppointmentSlot> AppointmentSlots { get; set; }
         public DbSet<Appointment> Appointments { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
+        public DbSet<SystemLog> SystemLogs { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

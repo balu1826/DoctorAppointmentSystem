@@ -67,10 +67,17 @@ namespace DoctorAppointmentSystem.Controllers
             return Ok(new { message = result });
         }
 
-        [HttpGet("logs")]
+        [HttpGet("Audit-logs")]
         public async Task<IActionResult> GetLogs()
         {
             var logs = await _adminService.GetAuditLogsAsync();
+            return Ok(logs);
+        }
+
+        [HttpGet("system-logs")]
+        public async Task<IActionResult> GetSystemLogs()
+        {
+            var logs = await _adminService.GetSystemLogsAsync();
             return Ok(logs);
         }
     }

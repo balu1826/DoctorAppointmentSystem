@@ -235,5 +235,20 @@ namespace DoctorAppointmentSystem.Service
                 })
                 .ToListAsync();
         }
+        // Admin can view system logs
+        public async Task<List<SystemLogDTO>> GetSystemLogsAsync()
+        {
+            return await _context.SystemLogs
+                .OrderByDescending(x => x.CreatedAt)
+                .Select(x => new SystemLogDTO
+                {
+                    UserId = x.UserId,
+                    Endpoint = x.ApiEndpoint,
+                    HttpMethod = x.HttpMethod,
+                    ExceptionMessage = x.ExceptionMessage,
+                    CreatedAt = x.CreatedAt
+                })
+                .ToListAsync();
+        }
     }
 }
