@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -49,8 +50,38 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddSwaggerGen();
+
+// ──────────────────────────────────────────────
+// Swagger / OpenAPI — with JWT Bearer support
+// ──────────────────────────────────────────────
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title       = "Doctor Appointment System API",
+        Version     = "v1",
+        Description = "REST API for the Doctor Appointment System. " +
+                      "Use the **Authorize** button to supply a Bearer JWT token."
+    });
+
+    // 1️⃣  Define the security scheme (HTTP Bearer / JWT)
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name         = "Authorization",
+        Type         = SecuritySchemeType.Http,
+        Scheme       = "bearer",          // must be lowercase for OpenAPI 3
+        BearerFormat = "JWT",
+        In           = ParameterLocation.Header,
+        Description  = "Enter your JWT token below. Example: **eyJhbGci...**\n\n" +
+                       "(Do NOT prefix with 'Bearer ' — Swagger adds it automatically)"
+    });
+
+    // 2️⃣  Apply the scheme globally — Swashbuckle 10 / OpenApi v2 delegate syntax
+    options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+    {
+        [new OpenApiSecuritySchemeReference("Bearer", document)] = new List<string>()
+    });
+});
 
 var app = builder.Build();
 using (var scope = app.Services.CreateScope())
