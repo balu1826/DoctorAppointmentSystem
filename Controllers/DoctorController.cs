@@ -44,18 +44,9 @@ namespace DoctorAppointmentSystem.Controllers
             {
                 return Unauthorized("User not authenticated");
             }
-            try
-            {
+           
                 await _doctorService.UpdateDoctorProfileAsync(userId, dto);
-            }
-            catch(BadRequestException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Something went wrong" });
-            }
+            
             
 
             return Ok("Profile submitted for re-verification");
@@ -118,20 +109,11 @@ namespace DoctorAppointmentSystem.Controllers
                 return Unauthorized("User not authenticated");
             }
 
-            try
-            {
                 await _doctorService.BlockSlotAsync(userId, slotId);
 
                 return Ok(new { message = "Slot blocked successfully" });
-            }
-            catch (BadRequestException ex)
-            {
-                return BadRequest(new { message = ex.Message }); 
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Something went wrong" });
-            }
+            
+           
         }
 
         //  Unblock Slot
@@ -143,22 +125,13 @@ namespace DoctorAppointmentSystem.Controllers
             {
                 return Unauthorized("User not authenticated");
             }
-            try
-            {
+           
 
                 await _doctorService.UnblockSlotAsync(userId, slotId);
 
                 return Ok(new { message = "Slot unblocked successfully" });
-            }
-            catch (BadRequestException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Something went wrong" });
-
-            }
+            
+        
         }
 
         [HttpPut("{id}/accept")]

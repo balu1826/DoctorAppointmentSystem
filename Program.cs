@@ -1,8 +1,11 @@
 using DoctorAppointmentSystem.DB;
+using DoctorAppointmentSystem.Mapping;
 using DoctorAppointmentSystem.Middleware;
 using DoctorAppointmentSystem.Model;
 using DoctorAppointmentSystem.Service;
 using DoctorAppointmentSystem.Service.Interfaces;
+using Mapster;
+using MapsterMapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -18,6 +21,9 @@ builder.Services.AddScoped<IPatientService, PatientService>();
 builder.Services.AddScoped<IDoctorService, DoctorService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();
+builder.Services.AddSingleton(TypeAdapterConfig.GlobalSettings);
+builder.Services.AddScoped<IMapper, ServiceMapper>();
+MapsterConfig.RegisterMappings();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
@@ -51,9 +57,6 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddControllers();
 
-// ──────────────────────────────────────────────
-// Swagger / OpenAPI — with JWT Bearer support
-// ──────────────────────────────────────────────
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo
@@ -64,19 +67,17 @@ builder.Services.AddSwaggerGen(options =>
                       "Use the **Authorize** button to supply a Bearer JWT token."
     });
 
-    // 1️⃣  Define the security scheme (HTTP Bearer / JWT)
+    
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name         = "Authorization",
         Type         = SecuritySchemeType.Http,
-        Scheme       = "bearer",          // must be lowercase for OpenAPI 3
+        Scheme       = "bearer",        
         BearerFormat = "JWT",
         In           = ParameterLocation.Header,
         Description  = "Enter your JWT token below. Example: **eyJhbGci...**\n\n" +
                        "(Do NOT prefix with 'Bearer ' — Swagger adds it automatically)"
     });
-
-    // 2️⃣  Apply the scheme globally — Swashbuckle 10 / OpenApi v2 delegate syntax
     options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
     {
         [new OpenApiSecuritySchemeReference("Bearer", document)] = new List<string>()

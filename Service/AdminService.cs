@@ -3,6 +3,7 @@ using DoctorAppointmentSystem.DTO;
 using DoctorAppointmentSystem.Model;
 using DoctorAppointmentSystem.Model.Enums;
 using DoctorAppointmentSystem.Service.Interfaces;
+using Mapster;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using static System.Runtime.InteropServices.JavaScript.JSType;
@@ -162,22 +163,18 @@ namespace DoctorAppointmentSystem.Service
         // Get all users for admin dashboard
         public async Task<List<UserDTO>> GetAllUsersAsync()
         {
-            var users = _context.Users.ToList();
+            var users = await _context.Users.ToListAsync();
 
             var result = new List<UserDTO>();
 
             foreach (var user in users)
             {
-                var roles = await _userManager.GetRolesAsync(user);
+                var dto = user.Adapt<UserDTO>();
 
-                result.Add(new UserDTO
-                {
-                    Id = user.Id,
-                    Name = user.FullName,
-                    Email = user!.Email!,
-                    IsActive = user.IsActive,
-                    Role = roles.FirstOrDefault() ?? ""
-                });
+                var roles = await _userManager.GetRolesAsync(user);
+                dto.Role = roles.FirstOrDefault() ?? "";
+
+                result.Add(dto);
             }
 
             return result;
