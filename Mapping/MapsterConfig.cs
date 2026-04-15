@@ -10,7 +10,9 @@ namespace DoctorAppointmentSystem.Mapping
         {
             TypeAdapterConfig<ApplicationUser, UserDTO>
                 .NewConfig();
-                
+            TypeAdapterConfig<Patient, PatientProfileDTO>
+               .NewConfig();
+
         }
     }
 }

@@ -4,6 +4,9 @@ using DoctorAppointmentSystem.Middleware;
 using DoctorAppointmentSystem.Model;
 using DoctorAppointmentSystem.Service;
 using DoctorAppointmentSystem.Service.Interfaces;
+using DoctorAppointmentSystem.Validations;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using Mapster;
 using MapsterMapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -56,6 +59,8 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddControllers();
+builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
+builder.Services.AddFluentValidationAutoValidation();
 
 builder.Services.AddSwaggerGen(options =>
 {

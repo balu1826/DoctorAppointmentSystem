@@ -1,8 +1,10 @@
 ﻿using DoctorAppointmentSystem.DB;
 using DoctorAppointmentSystem.DTO;
+using DoctorAppointmentSystem.Exceptions;
 using DoctorAppointmentSystem.Model;
 using DoctorAppointmentSystem.Model.Enums;
 using DoctorAppointmentSystem.Service.Interfaces;
+using Mapster;
 using Microsoft.EntityFrameworkCore;
 
 namespace DoctorAppointmentSystem.Service
@@ -16,25 +18,30 @@ namespace DoctorAppointmentSystem.Service
             _context = context;
             _adminService = adminService;
         }
-
-        public async Task<string> CompleteProfileAsync(string userId, PatientProfileDTO model)
+        private async Task<Patient> GetPatientByUserIdAsync(string userId)
         {
             var patient = await _context.Patients
                 .FirstOrDefaultAsync(p => p.UserId == userId);
-
             if (patient == null)
                 throw new Exception("Patient not found");
 
+            return patient;
+        }
+       
+
+        public async Task<string> CompleteProfileAsync(string userId, PatientProfileDTO model)
+        {
+            var patient = await GetPatientByUserIdAsync(userId);
+           
             if (patient.IsVerified)
-                throw new Exception("Profile already completed");
+                throw new BadRequestException("Profile already completed");
 
-            if (model.DateOfBirth >= DateTime.UtcNow)
-                throw new Exception("Invalid date of birth");
 
-            patient.BloodGroup = model.BloodGroup;
-            patient.DateOfBirth = model.DateOfBirth;
-            patient.Gender = model.Gender;
-            patient.IsVerified = true;
+
+            //validation through FluentValidation
+
+            model.Adapt(patient);
+            //Mapster
             await _adminService.LogAsync(
                "Profile Verified",
                 userId,
@@ -48,18 +55,10 @@ namespace DoctorAppointmentSystem.Service
 
         public async Task<string> UpdateProfileAsync(string userId, PatientProfileDTO model)
         {
-            var patient = await _context.Patients
-                .FirstOrDefaultAsync(p => p.UserId == userId);
-
-            if (patient == null)
-                throw new Exception("Patient not found");
-
-            if (model.DateOfBirth >= DateTime.UtcNow)
-                throw new Exception("Invalid date of birth");
-
-            patient.BloodGroup = model.BloodGroup;
-            patient.DateOfBirth = model.DateOfBirth;
-            patient.Gender = model.Gender;
+            var patient = await GetPatientByUserIdAsync(userId);
+            if (!patient.IsVerified)
+                throw new BadRequestException("Profile isn't verified yet!");
+            model.Adapt(patient);
             await _adminService.LogAsync(
                 "Profile Updated",
                  userId,
