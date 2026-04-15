@@ -27,48 +27,33 @@ namespace DoctorAppointmentSystem.Service
 
             return patient;
         }
-       
-
-        public async Task<string> CompleteProfileAsync(string userId, PatientProfileDTO model)
+              
+        public async Task<string> SavePatientProfileAsync(
+            string userId,
+            PatientProfileDTO model,
+            bool requireVerified,
+            string logMessage,
+            string successMessage)
         {
             var patient = await GetPatientByUserIdAsync(userId);
-           
-            if (patient.IsVerified)
+
+            if (requireVerified && !patient.IsVerified)
+                throw new BadRequestException("Profile isn't verified yet!");
+
+            if (!requireVerified && patient.IsVerified)
                 throw new BadRequestException("Profile already completed");
 
-
-
-            //validation through FluentValidation
-
+           
             model.Adapt(patient);
-            //Mapster
-            await _adminService.LogAsync(
-               "Profile Verified",
-                userId,
-                "Patient"
-           );
+
+            await _adminService.LogAsync(logMessage, userId, "Patient");
 
             await _context.SaveChangesAsync();
 
-            return "Your account verified successfully!";
+            return successMessage;
         }
 
-        public async Task<string> UpdateProfileAsync(string userId, PatientProfileDTO model)
-        {
-            var patient = await GetPatientByUserIdAsync(userId);
-            if (!patient.IsVerified)
-                throw new BadRequestException("Profile isn't verified yet!");
-            model.Adapt(patient);
-            await _adminService.LogAsync(
-                "Profile Updated",
-                 userId,
-                 "Patient"     
-            );
 
-            await _context.SaveChangesAsync();
-
-            return "Profile updated successfully";
-        }
         //To get all the doctors
         public async Task<List<DoctorListDTO>> GetDoctorsAsync()
         {

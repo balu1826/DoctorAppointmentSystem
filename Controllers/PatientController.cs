@@ -27,14 +27,24 @@ namespace DoctorAppointmentSystem.Controllers
         [HttpPost("complete-profile")]
         public async Task<IActionResult> CompleteProfile(PatientProfileDTO model)
         {
-            var result = await _patientService.CompleteProfileAsync(GetUserId(), model);
+            var result = await _patientService.SavePatientProfileAsync(
+        GetUserId(),
+        model,
+        requireVerified: false,
+        logMessage: "Profile Verified",
+        successMessage: "Your account verified successfully!");
             return Ok(result);
         }
 
         [HttpPut("update-profile")]
         public async Task<IActionResult> UpdateProfile(PatientProfileDTO model)
         {
-            var result = await _patientService.UpdateProfileAsync(GetUserId(), model);
+            var result = await _patientService.SavePatientProfileAsync(
+        GetUserId(),
+        model,
+        requireVerified: true,
+        logMessage: "Profile Updated",
+        successMessage: "Profile updated successfully!");
             return Ok(result);
         }
 
