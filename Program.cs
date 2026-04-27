@@ -1,9 +1,13 @@
 using DoctorAppointmentSystem.DB;
+using DoctorAppointmentSystem.DTO;
+using DoctorAppointmentSystem.Filters;
 using DoctorAppointmentSystem.Mapping;
 using DoctorAppointmentSystem.Middleware;
 using DoctorAppointmentSystem.Model;
 using DoctorAppointmentSystem.Service;
 using DoctorAppointmentSystem.Service.Interfaces;
+using DoctorAppointmentSystem.Util.Implementations;
+using DoctorAppointmentSystem.Util.Interfaces;
 using DoctorAppointmentSystem.Validations;
 using FluentValidation;
 using FluentValidation.AspNetCore;
@@ -11,6 +15,7 @@ using Mapster;
 using MapsterMapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
@@ -24,9 +29,13 @@ builder.Services.AddScoped<IPatientService, PatientService>();
 builder.Services.AddScoped<IDoctorService, DoctorService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+
 builder.Services.AddSingleton(TypeAdapterConfig.GlobalSettings);
 builder.Services.AddScoped<IMapper, ServiceMapper>();
 MapsterConfig.RegisterMappings();
+builder.Services.AddAutoMapper(typeof(UserProfile));
+
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
@@ -57,11 +66,38 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(key)
     };
 });
+//Filetrs services registration
+builder.Services.AddScoped<DoctorAccessFilter>();
+builder.Services.AddScoped<AuditLogFilter>();
+builder.Services.AddHttpContextAccessor();
 
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<AuditLogFilter>();
+}).ConfigureApiBehaviorOptions(options =>
+{
+    options.InvalidModelStateResponseFactory = context =>
+    {
+        var errors = context.ModelState
+            .SelectMany(x => x.Value!.Errors)
+            .Select(x => x.ErrorMessage)
+            .ToList();
+
+        return new BadRequestObjectResult(new ApiResponse<object>
+        {
+            Status = 400,
+            Success = false,
+            Message = "Validation failed",
+            Errors = errors,
+            Error = "Invalid Request"
+        });
+    };
+});
+
+//Fluent Validation registration
 builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
 builder.Services.AddFluentValidationAutoValidation();
-
+//swagger
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo
@@ -71,8 +107,6 @@ builder.Services.AddSwaggerGen(options =>
         Description = "REST API for the Doctor Appointment System. " +
                       "Use the **Authorize** button to supply a Bearer JWT token."
     });
-
-    
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name         = "Authorization",
@@ -93,6 +127,10 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+    var config = scope.ServiceProvider
+        .GetRequiredService<AutoMapper.IConfigurationProvider>();
+
+    config.AssertConfigurationIsValid();
 
     string[] roles = { "Admin", "Doctor", "Patient" };
 
@@ -104,6 +142,7 @@ using (var scope = app.Services.CreateScope())
         }
     }
 }
+//Admin Account Seeding
 using (var scope = app.Services.CreateScope())
 {
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();

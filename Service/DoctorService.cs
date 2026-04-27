@@ -4,6 +4,7 @@ using DoctorAppointmentSystem.Exceptions;
 using DoctorAppointmentSystem.Model;
 using DoctorAppointmentSystem.Model.Enums;
 using DoctorAppointmentSystem.Service.Interfaces;
+using DoctorAppointmentSystem.Util.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System.Numerics;
@@ -15,16 +16,20 @@ namespace DoctorAppointmentSystem.Service
         private readonly AppDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IAdminService _adminService;
+        private readonly ICurrentUserService _currentUser;
 
-        public DoctorService(AppDbContext context, UserManager<ApplicationUser> userManager, IAdminService adminService)
+
+        public DoctorService(AppDbContext context, UserManager<ApplicationUser> userManager, IAdminService adminService, ICurrentUserService currentUser)
         {
             _context = context;
             _userManager = userManager;
             _adminService = adminService;
+            _currentUser = currentUser;
         }
 
-        public async Task SubmitDoctorProfileAsync(string userId, DoctorProfileDto dto)
+        public async Task SubmitDoctorProfileAsync( DoctorProfileDto dto)
         {
+            var userId = _currentUser.UserId;
             var existingDoctor = await _context.Doctors
                 .FirstOrDefaultAsync(d => d.UserId == userId);
 
@@ -55,25 +60,15 @@ namespace DoctorAppointmentSystem.Service
                 ReferenceId = existingDoctor.Id 
             };
 
-            _context.Notifications.Add(notification);
-            await _adminService.LogAsync(
-            "Doctor Verification Request",
-             userId,
-             "Doctor"
-            );
-
-            await _context.SaveChangesAsync();
+            _context.Notifications.Add(notification);     
+             await _context.SaveChangesAsync();
         }
 
-        public async Task UpdateDoctorProfileAsync(string userId, DoctorProfileDto dto)
+        public async Task UpdateDoctorProfileAsync( DoctorProfileDto dto)
         {
-            var doctor = await _context.Doctors
-                .FirstOrDefaultAsync(d => d.UserId == userId);
-
-            if (doctor == null)
-                throw new Exception("Doctor profile not found");
-            if(!doctor.IsApproved)
-                throw new BadRequestException("Doctor profile not approved yet");
+            var userId = _currentUser.UserId;
+            var doctor = await GetApprovedDoctorAsync(userId);
+              
 
             //  Update fields
             doctor.Specialization = dto.Specialization;
@@ -100,30 +95,16 @@ namespace DoctorAppointmentSystem.Service
 
 
             _context.Notifications.Add(notification);
-
-            await _adminService.LogAsync(
-                "Doctor Re-Verification Request",
-                userId,
-                "Doctor"
-                );
             await _context.SaveChangesAsync();
         }
 
-        public async Task SetAvailabilityAsync(string userId, DoctorAvailabilityDTO dto)
+        public async Task SetAvailabilityAsync( DoctorAvailabilityDTO dto)
         {
-            var doctor = await _context.Doctors
-                .FirstOrDefaultAsync(d => d.UserId == userId);
-
-            if (doctor == null)
-                throw new Exception("Doctor not found");
-
-            if (!doctor.IsApproved)
-                throw new Exception("Doctor not approved");
+            var userId = _currentUser.UserId;
+            var doctor = await GetApprovedDoctorAsync(userId);
 
             if (dto.StartTime >= dto.EndTime)
                 throw new Exception("Start time must be less than end time");
-
-          
 
             //  Prevent duplicate for same day
             var existing = await _context.DoctorAvailability
@@ -151,27 +132,13 @@ namespace DoctorAppointmentSystem.Service
 
                 _context.DoctorAvailability.Add(availability);
             }
-            //Audit log
-            await _adminService.LogAsync(
-         "Availability Updates",
-          userId,
-          "Doctor",
-          null,
-          "Doctor set availability for " + dto.DayOfWeek.ToString()
-         );
-            await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync();
         }
 
-        public async Task GenerateSlotsAsync(string userId, int numberOfDays)
+        public async Task GenerateSlotsAsync( int numberOfDays)
         {
-            var doctor = await _context.Doctors
-                .FirstOrDefaultAsync(d => d.UserId == userId);
-
-            if (doctor == null)
-                throw new Exception("Doctor not found");
-
-            if (!doctor.IsApproved)
-                throw new Exception("Doctor not approved");
+            var userId = _currentUser.UserId;
+            var doctor = await GetApprovedDoctorAsync(userId);
 
             var availabilities = await _context.DoctorAvailability
                 .Where(a => a.DoctorId == doctor.Id)
@@ -225,24 +192,14 @@ namespace DoctorAppointmentSystem.Service
             if (slotsToAdd.Any())
             {
                 _context.AppointmentSlots.AddRange(slotsToAdd);
-                await _adminService.LogAsync(
-                 "Slots Generation",
-                  userId,
-                  "AppointmentSlots",
-                  null,
-                  "Doctor generated " + slotsToAdd.Count + " slots"
-                 );
                 await _context.SaveChangesAsync();
             }
         }
 
-        public async Task<List<DoctorSlotDTO>> GetDoctorSlotsAsync(string userId)
+        public async Task<List<DoctorSlotDTO>> GetDoctorSlotsAsync()
         {
-            var doctor = await _context.Doctors
-                .FirstOrDefaultAsync(d => d.UserId == userId);
-
-            if (doctor == null)
-                throw new Exception("Doctor not found");
+            var userId = _currentUser.UserId;
+            var doctor = await GetApprovedDoctorAsync(userId);
 
             var slots = await _context.AppointmentSlots
                 .Where(s => s.DoctorId == doctor.Id)
@@ -260,13 +217,10 @@ namespace DoctorAppointmentSystem.Service
             return slots;
         }
 
-        public async Task BlockSlotAsync(string userId, int slotId)
+        public async Task BlockSlotAsync( int slotId)
         {
-            var doctor = await _context.Doctors
-                .FirstOrDefaultAsync(d => d.UserId == userId);
-
-            if (doctor == null)
-                throw new Exception("Doctor not found");
+            var userId = _currentUser.UserId;
+            var doctor = await GetApprovedDoctorAsync(userId);
 
             var slot = await _context.AppointmentSlots
                 .FirstOrDefaultAsync(s => s.Id == slotId);
@@ -285,24 +239,14 @@ namespace DoctorAppointmentSystem.Service
                 throw new BadRequestException("Slot already blocked");
 
             slot.IsBlocked = true;
-            //Audit log
-            await _adminService.LogAsync(
-             "Block Slot",
-              userId,
-              "AppointmentSlots",
-              slotId,
-              "Doctor blocked slot  "
-             );
+          
             await _context.SaveChangesAsync();
         }
 
-        public async Task UnblockSlotAsync(string userId, int slotId)
+        public async Task UnblockSlotAsync( int slotId)
         {
-            var doctor = await _context.Doctors
-                .FirstOrDefaultAsync(d => d.UserId == userId);
-
-            if (doctor == null)
-                throw new Exception("Doctor not found");
+            var userId = _currentUser.UserId;
+            var doctor = await GetApprovedDoctorAsync(userId);
 
             var slot = await _context.AppointmentSlots
                 .FirstOrDefaultAsync(s => s.Id == slotId);
@@ -319,19 +263,13 @@ namespace DoctorAppointmentSystem.Service
 
 
             slot.IsBlocked = false;
-            //Audit log
-            await _adminService.LogAsync(
-             "Un-Block Slot",
-              userId,
-              "AppointmentSlots",
-              slotId,
-              "Doctor unblocked slot  "
-             );
+          
             await _context.SaveChangesAsync();
         }
         //  Doctor accepts appointment (from booked to accepted)
-        public async Task<string> AcceptAppointmentAsync(int appointmentId, string doctorUserId)
+        public async Task<string> AcceptAppointmentAsync(int appointmentId)
         {
+            var doctorUserId = _currentUser.UserId;
             var appointment = await _context.Appointments
                 .Include(a => a.Slot)
                 .ThenInclude(s => s!.Doctor)
@@ -362,22 +300,15 @@ namespace DoctorAppointmentSystem.Service
             };
 
             _context.Notifications.Add(notification);
-            //Audit log
-            await _adminService.LogAsync(
-             "Accept Appointment",
-              doctorUserId,
-              "Appointment",
-              appointmentId,
-              "Doctor Accepted Appointment "
-             );
-
+          
             await _context.SaveChangesAsync();
 
             return "Appointment accepted";
         }
         //  Doctor rejects appointment (from booked to rejected)
-        public async Task<string> RejectAppointmentAsync(int appointmentId, string doctorUserId)
+        public async Task<string> RejectAppointmentAsync(int appointmentId)
         {
+            var doctorUserId = _currentUser.UserId;
             var appointment = await _context.Appointments
                 .Include(a => a.Slot)
                 .ThenInclude(s => s!.Doctor)
@@ -407,23 +338,16 @@ namespace DoctorAppointmentSystem.Service
             };
 
             _context.Notifications.Add(notification);
-            
-            //Audit log
-            await _adminService.LogAsync(
-             "Reject Appointment",
-              doctorUserId,
-              "Appointment",
-              appointmentId,
-              "Doctor Rejected Appointment "
-             );
+          
 
             await _context.SaveChangesAsync();
 
             return "Appointment rejected";
         }
         //  Doctor completes appointment (from accepted to completed)
-        public async Task<string> CompleteAppointmentAsync(int appointmentId, string doctorUserId)
+        public async Task<string> CompleteAppointmentAsync(int appointmentId)
         {
+            var doctorUserId = _currentUser.UserId;
             var appointment = await _context.Appointments
                 .Include(a => a.Slot)
                 .ThenInclude(s => s!.Doctor)
@@ -451,23 +375,14 @@ namespace DoctorAppointmentSystem.Service
             };
 
             _context.Notifications.Add(notification);
-            
-            //Audit log
-            await _adminService.LogAsync(
-             "Complete Appointment",
-              doctorUserId,
-              "Appointment",
-              appointmentId,
-              "Doctor Completed Appointment "
-             );
-
             await _context.SaveChangesAsync();
 
             return "Appointment completed";
         }
         //  Get doctor's appointments (both upcoming and completed)
-        public async Task<DoctorAppointmentsDTO> GetDoctorAppointmentsAsync(string doctorUserId)
+        public async Task<DoctorAppointmentsDTO> GetDoctorAppointmentsAsync()
         {
+            var doctorUserId = _currentUser.UserId;
             var now = DateTime.UtcNow;
 
             var appointments = await _context.Appointments
@@ -502,6 +417,20 @@ namespace DoctorAppointmentSystem.Service
             };
 
             return result;
+        }
+
+        private async Task<Doctor> GetApprovedDoctorAsync(string userId)
+        {
+            var doctor = await _context.Doctors
+                .FirstOrDefaultAsync(d => d.UserId == userId);
+
+            if (doctor == null)
+                throw new UnauthorizedAccessException("Doctor not found");
+
+            if (!doctor.IsApproved)
+                throw new ForbiddenAccessException("Doctor not approved");
+
+            return doctor;
         }
 
     }

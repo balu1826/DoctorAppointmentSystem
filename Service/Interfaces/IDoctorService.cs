@@ -4,17 +4,17 @@ namespace DoctorAppointmentSystem.Service.Interfaces
 {
     public interface IDoctorService
     {
-        Task SubmitDoctorProfileAsync(string userId, DoctorProfileDto dto);
-        Task UpdateDoctorProfileAsync(string userId, DoctorProfileDto dto);
-        Task SetAvailabilityAsync(string userId, DoctorAvailabilityDTO dto);
-        Task GenerateSlotsAsync(string userId, int numberOfDays);
-        Task<List<DoctorSlotDTO>> GetDoctorSlotsAsync(string userId);
-        Task BlockSlotAsync(string userId, int slotId);
-        Task UnblockSlotAsync(string userId, int slotId);
-        Task<string> AcceptAppointmentAsync(int appointmentId, string doctorUserId);
-        Task<string> RejectAppointmentAsync(int appointmentId, string doctorUserId);
-        Task<string> CompleteAppointmentAsync(int appointmentId, string doctorUserId);
-        Task<DoctorAppointmentsDTO> GetDoctorAppointmentsAsync(string doctorUserId);
+        Task SubmitDoctorProfileAsync( DoctorProfileDto dto);
+        Task UpdateDoctorProfileAsync( DoctorProfileDto dto);
+        Task SetAvailabilityAsync( DoctorAvailabilityDTO dto);
+        Task GenerateSlotsAsync( int numberOfDays);
+        Task<List<DoctorSlotDTO>> GetDoctorSlotsAsync();
+        Task BlockSlotAsync(int slotId);
+        Task UnblockSlotAsync(int slotId);
+        Task<string> AcceptAppointmentAsync(int appointmentId);
+        Task<string> RejectAppointmentAsync(int appointmentId);
+        Task<string> CompleteAppointmentAsync(int appointmentId);
+        Task<DoctorAppointmentsDTO> GetDoctorAppointmentsAsync();
 
     }
 }

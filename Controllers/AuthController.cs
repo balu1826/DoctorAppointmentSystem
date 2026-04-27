@@ -1,9 +1,10 @@
-﻿using DoctorAppointmentSystem.DB;
+﻿using Azure.Core;
+using DoctorAppointmentSystem.DB;
 using DoctorAppointmentSystem.DTO;
-using DoctorAppointmentSystem.Service.Interfaces;
 using DoctorAppointmentSystem.Exceptions;
 using DoctorAppointmentSystem.Model;
 using DoctorAppointmentSystem.Service;
+using DoctorAppointmentSystem.Service.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -101,7 +102,12 @@ namespace DoctorAppointmentSystem.Controllers
        );
             await _context.SaveChangesAsync();
 
-            return Ok("User registered successfully");
+            return Ok(new ApiResponse<object>
+            {
+                Status = HttpContext.Response.StatusCode,
+                Success = true,
+                Message = "Registration successful"
+            });
         }
 
 
@@ -128,9 +134,9 @@ namespace DoctorAppointmentSystem.Controllers
 
             return Ok(new ApiResponse<object>
             {
+                Status= HttpContext.Response.StatusCode,
                 Success = true,
                 Message = "Login successful",
-                StatusCode = 200,
                 Data = new
                 {
                     accessToken,
@@ -164,8 +170,7 @@ namespace DoctorAppointmentSystem.Controllers
             return Ok(new ApiResponse<string>
             {
                 Success = true,
-                Message = "Logged out successfully",
-                StatusCode = 200
+                Message = "Logged out successfully"
             });
         }
 
@@ -189,7 +194,6 @@ namespace DoctorAppointmentSystem.Controllers
             {
                 Success = true,
                 Message = "Token refreshed",
-                StatusCode = 200,
                 Data = new { accessToken = newAccessToken }
             });
         }

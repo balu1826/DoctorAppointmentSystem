@@ -56,29 +56,53 @@
 
         private static async Task HandleExceptionAsync(HttpContext context, Exception ex)
         {
-            var response = new ApiResponse<string>
+            var env = context.RequestServices.GetRequiredService<IWebHostEnvironment>();
+            var response = new ApiResponse<object>
             {
                 Success = false,
-                Message = ex.Message,
-                StatusCode = (int)HttpStatusCode.InternalServerError
+                Message = "Something went wrong",
+                Errors = new List<string>()
             };
 
             switch (ex)
             {
                 case BadRequestException:
-                    context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-                    response.StatusCode = 400;
+                    context.Response.StatusCode = 400;
+                    response.Status = 400;
+                    response.Message = ex.Message;
+                    response.Error = "Invalid Request";
                     break;
 
                 case NotFoundException:
-                    context.Response.StatusCode = (int)HttpStatusCode.NotFound;
-                    response.StatusCode = 404;
+                    context.Response.StatusCode = 404;
+                    response.Status = 404;
+                    response.Message = ex.Message;
+                    response.Error = "Resource Not Found";
                     break;
+                case UnauthorizedAccessException:
+                    context.Response.StatusCode = 401;
+                    response.Status = 401;
+                    response.Message = "Unauthorized";
+                    response.Error = "Invalid Authorization";
+                    break;
+                case ForbiddenAccessException:
+                    context.Response.StatusCode = 403;
+                    response.Status = 403;
+                    response.Message = "Access Denied";
+                    response.Error = "Invalid Access";
+                    break; 
 
                 default:
                     context.Response.StatusCode = 500;
-                    response.Message = "Something went wrong";
+                    response.Status = 500;
+                    response.Errors.Add(ex.Message);
+                    response.Error = "Internal Server Error";
                     break;
+            }
+          
+            if (env.IsDevelopment())
+            {
+                response.Errors.Add(ex.Message);
             }
 
             context.Response.ContentType = "application/json";

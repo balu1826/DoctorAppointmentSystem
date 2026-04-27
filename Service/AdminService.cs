@@ -5,8 +5,11 @@ using DoctorAppointmentSystem.Model.Enums;
 using DoctorAppointmentSystem.Service.Interfaces;
 using Mapster;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Diagnostics;
 using static System.Runtime.InteropServices.JavaScript.JSType;
+using AutoMapper;
 
 namespace DoctorAppointmentSystem.Service
 {
@@ -14,11 +17,13 @@ namespace DoctorAppointmentSystem.Service
     {
         private readonly AppDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IMapper _mapper;
 
-        public AdminService(AppDbContext context,UserManager<ApplicationUser> userManager)
+        public AdminService(AppDbContext context,UserManager<ApplicationUser> userManager, IMapper mapper)
         {
             _context = context;
             _userManager = userManager;
+            _mapper = mapper;
         }
 
         public async Task ApproveDoctorAsync(int notificationId)
@@ -169,10 +174,11 @@ namespace DoctorAppointmentSystem.Service
 
             foreach (var user in users)
             {
-                var dto = user.Adapt<UserDTO>();
+               var dto = user.Adapt<UserDTO>();
+               // var dto = _mapper.Map<UserDTO>(user);
 
                 var roles = await _userManager.GetRolesAsync(user);
-                dto.Role = roles.FirstOrDefault() ?? "";
+              //  dto.Role = roles.FirstOrDefault() ?? "";
 
                 result.Add(dto);
             }

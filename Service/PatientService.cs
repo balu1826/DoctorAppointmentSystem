@@ -1,4 +1,5 @@
-﻿using DoctorAppointmentSystem.DB;
+﻿using AutoMapper.QueryableExtensions;
+using DoctorAppointmentSystem.DB;
 using DoctorAppointmentSystem.DTO;
 using DoctorAppointmentSystem.Exceptions;
 using DoctorAppointmentSystem.Model;
@@ -6,6 +7,7 @@ using DoctorAppointmentSystem.Model.Enums;
 using DoctorAppointmentSystem.Service.Interfaces;
 using Mapster;
 using Microsoft.EntityFrameworkCore;
+using AutoMapper;
 
 namespace DoctorAppointmentSystem.Service
 {
@@ -13,10 +15,13 @@ namespace DoctorAppointmentSystem.Service
     {
         private readonly AppDbContext _context;
         private readonly IAdminService _adminService;
-        public PatientService(AppDbContext context, IAdminService adminService)
+        private readonly IMapper _mapper;
+
+        public PatientService(AppDbContext context, IAdminService adminService, IMapper mapper)
         {
             _context = context;
             _adminService = adminService;
+            _mapper = mapper;
         }
         private async Task<Patient> GetPatientByUserIdAsync(string userId)
         {
@@ -157,7 +162,7 @@ namespace DoctorAppointmentSystem.Service
                 })
                 .FirstOrDefaultAsync();
         }
-        //To get patient appointments (upcoming and completed)
+       //To get patient appointments (upcoming and completed)
         public async Task<PatientAppointmentsDTO> GetPatientAppointmentsAsync(string patientId)
         {
             var now = DateTime.UtcNow;

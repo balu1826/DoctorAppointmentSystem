@@ -1,7 +1,11 @@
-﻿using DoctorAppointmentSystem.DTO;
+﻿using DoctorAppointmentSystem.DB;
+using DoctorAppointmentSystem.DTO;
 using DoctorAppointmentSystem.Service.Interfaces;
+using Mapster;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Diagnostics;
 
 namespace DoctorAppointmentSystem.Controllers
 {
@@ -11,10 +15,74 @@ namespace DoctorAppointmentSystem.Controllers
     public class AdminController : ControllerBase
     {
         private readonly IAdminService _adminService;
+        private readonly AutoMapper.IMapper _mapper;
+        private readonly AppDbContext _context;
 
-        public AdminController(IAdminService adminService)
+        public AdminController(IAdminService adminService, AutoMapper.IMapper mapper, AppDbContext context)
         {
             _adminService = adminService;
+            _mapper = mapper;
+            _context = context;
+        }
+        [HttpGet("benchmark-users")]
+        public async Task<IActionResult> BenchmarkUsers()
+        {
+            var users = await _context.Users.ToListAsync();
+
+            var sw = Stopwatch.StartNew();
+
+            // AutoMapper
+            for (int i = 0; i < 1000; i++)
+            {
+                var auto = _mapper.Map<List<UserDTO>>(users);
+            }
+
+            sw.Stop();
+            var autoTime = sw.ElapsedMilliseconds;
+
+            sw.Restart();
+
+            // Mapster
+            for (int i = 0; i < 1000; i++)
+            {
+                var mapster = users.Adapt<List<UserDTO>>();
+            }
+
+            sw.Stop();
+            var mapsterTime = sw.ElapsedMilliseconds;
+
+            return Ok(new
+            {
+                AutoMapper = autoTime,
+                Mapster = mapsterTime
+            });
+        }
+
+        [HttpGet("memory-test")]
+        public async Task<IActionResult> MemoryTest()
+        {
+            var users = await _context.Users.ToListAsync();
+
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+
+            long before = GC.GetTotalMemory(true);
+
+            // AutoMapper
+            var auto = _mapper.Map<List<DoctorProfileViewDTO>>(users);
+
+            long afterAuto = GC.GetTotalMemory(true);
+
+            // Mapster
+            var mapster = users.Adapt<List<UserDTO>>();
+
+            long afterMapster = GC.GetTotalMemory(true);
+
+            return Ok(new
+            {
+                AutoMapperMemory = afterAuto - before,
+                MapsterMemory = afterMapster - afterAuto
+            });
         }
 
         // Approve doctor via notification
