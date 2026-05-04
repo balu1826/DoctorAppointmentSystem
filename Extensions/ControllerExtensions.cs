@@ -5,6 +5,8 @@ namespace DoctorAppointmentSystem.Extensions
 {
     public static class ControllerExtensions
     {
+        
+        //For successsful API respose
         public static IActionResult ApiOk<T>(this ControllerBase controller, T data, string message = "Success")
         {
             var response = new ApiResponse<T>
@@ -14,21 +16,18 @@ namespace DoctorAppointmentSystem.Extensions
                 Message = message,
                 Data = data
             };
-
             return controller.Ok(response);
         }
-
-        public static IActionResult ApiBadRequest(this ControllerBase controller, string message)
+        //For creating new resource
+        public static IActionResult ApiCreated(this ControllerBase controller, string message)
         {
             var response = new ApiResponse<object>
             {
-                Status = StatusCodes.Status400BadRequest,
-                Success = false,
-                Message = message,
-                Error = "Invalid Request"
+                Status = StatusCodes.Status201Created,
+                Success = true,
+                Message = message
             };
-
-            return controller.BadRequest(response);
+            return controller.StatusCode(StatusCodes.Status201Created, response);
         }
     }
 }

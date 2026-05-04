@@ -30,12 +30,8 @@ namespace DoctorAppointmentSystem.Service
         public async Task SubmitDoctorProfileAsync( DoctorProfileDto dto)
         {
             var userId = _currentUser.UserId;
-            var existingDoctor = await _context.Doctors
-                .FirstOrDefaultAsync(d => d.UserId == userId);
-
-            if (existingDoctor == null)
-                throw new Exception("Doctor profile not found");
-
+            var existingDoctor = await GetApprovedDoctorAsync(userId);
+                
             if (existingDoctor.VerificationStatus == VerificationStatus.Approved)
                 throw new Exception("Profile already approved");
 
@@ -145,7 +141,7 @@ namespace DoctorAppointmentSystem.Service
                 .ToListAsync();
 
             if (!availabilities.Any())
-                throw new Exception("No availability found");
+                throw new BadRequestException("No availability found");
 
             var today = DateTime.UtcNow.Date;
 

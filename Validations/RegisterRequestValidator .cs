@@ -14,7 +14,7 @@ namespace DoctorAppointmentSystem.Validations
             RuleFor(x => x.Password)
                 .NotEmpty()
                 .MinimumLength(9)
-                .Matches(@"^(?:.*[A-Z]){2,}(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&]).+$")
+                .Matches(@"^(?=(?:.*[A-Z]){2,})(?=(?:.*[a-z]){1,})(?=(?:.*\d){1,})(?=(?:.*[@$!%*?&]){1,}).+$")
                 .WithMessage("Password must contain at least 2 uppercase letters, lowercase letters, numbers, and special characters");
 
             RuleFor(x => x.FullName)

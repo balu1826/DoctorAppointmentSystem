@@ -68,12 +68,10 @@ builder.Services.AddAuthentication(options =>
 });
 //Filetrs services registration
 builder.Services.AddScoped<DoctorAccessFilter>();
-builder.Services.AddScoped<AuditLogFilter>();
 builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddControllers(options =>
 {
-    options.Filters.Add<AuditLogFilter>();
 }).ConfigureApiBehaviorOptions(options =>
 {
     options.InvalidModelStateResponseFactory = context =>
@@ -95,7 +93,9 @@ builder.Services.AddControllers(options =>
 });
 
 //Fluent Validation registration
-builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
+//builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
+builder.Services.AddScoped<IValidator<RegisterRequest>, RegisterRequestValidator>();
+builder.Services.AddScoped<IValidator<PatientProfileDTO>, PatientProfileDTOValidator>();
 builder.Services.AddFluentValidationAutoValidation();
 //swagger
 builder.Services.AddSwaggerGen(options =>

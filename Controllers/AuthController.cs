@@ -2,9 +2,11 @@
 using DoctorAppointmentSystem.DB;
 using DoctorAppointmentSystem.DTO;
 using DoctorAppointmentSystem.Exceptions;
+using DoctorAppointmentSystem.Extensions;
 using DoctorAppointmentSystem.Model;
 using DoctorAppointmentSystem.Service;
 using DoctorAppointmentSystem.Service.Interfaces;
+using DoctorAppointmentSystem.Validations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -43,6 +45,14 @@ namespace DoctorAppointmentSystem.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterRequest model)
         {
+            var validator = new RegisterRequestValidator();
+           var result1= validator.Validate(model);
+
+            if (result1.IsValid && result1.Errors.Count != 0)
+                return BadRequest(result1.Errors);
+
+       
+
             // Check user exists
             var existingUser = await _userManager.FindByEmailAsync(model.Email);
             if (existingUser != null)
@@ -102,12 +112,7 @@ namespace DoctorAppointmentSystem.Controllers
        );
             await _context.SaveChangesAsync();
 
-            return Ok(new ApiResponse<object>
-            {
-                Status = HttpContext.Response.StatusCode,
-                Success = true,
-                Message = "Registration successful"
-            });
+            return this.ApiCreated("Registration Successful");
         }
 
 
