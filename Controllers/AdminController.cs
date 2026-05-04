@@ -1,5 +1,6 @@
 ﻿using DoctorAppointmentSystem.DB;
 using DoctorAppointmentSystem.DTO;
+using DoctorAppointmentSystem.Pagination.AuditLog;
 using DoctorAppointmentSystem.Service.Interfaces;
 using Mapster;
 using Microsoft.AspNetCore.Authorization;
@@ -136,9 +137,9 @@ namespace DoctorAppointmentSystem.Controllers
         }
 
         [HttpGet("Audit-logs")]
-        public async Task<IActionResult> GetLogs()
+        public async Task<IActionResult> GetAuditLogs([FromQuery] AuditLogQueryParams queryParams)
         {
-            var logs = await _adminService.GetAuditLogsAsync();
+            var logs = await _adminService.GetAuditLogsAsync(queryParams);
             return Ok(logs);
         }
 

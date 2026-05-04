@@ -1,4 +1,6 @@
 ﻿using DoctorAppointmentSystem.DTO;
+using DoctorAppointmentSystem.Model;
+using DoctorAppointmentSystem.Pagination.AuditLog;
 
 namespace DoctorAppointmentSystem.Service.Interfaces
 {
@@ -10,7 +12,7 @@ namespace DoctorAppointmentSystem.Service.Interfaces
         Task<List<UserDTO>> GetAllUsersAsync();
         Task<string> ToggleUserStatusAsync(string userId);
         Task LogAsync(string action, string userId, string entityType, int? referenceId=null, string? description = null);
-        Task<List<AuditLogDTO>> GetAuditLogsAsync();
+        Task<PagedResult<AuditLogDTO>> GetAuditLogsAsync(AuditLogQueryParams  queryParams);
         Task<List<SystemLogDTO>> GetSystemLogsAsync();
     }
 }

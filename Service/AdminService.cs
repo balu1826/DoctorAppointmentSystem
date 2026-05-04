@@ -1,15 +1,16 @@
-﻿using DoctorAppointmentSystem.DB;
+﻿using AutoMapper;
+using DoctorAppointmentSystem.DB;
 using DoctorAppointmentSystem.DTO;
 using DoctorAppointmentSystem.Model;
 using DoctorAppointmentSystem.Model.Enums;
+using DoctorAppointmentSystem.Pagination.AuditLog;
 using DoctorAppointmentSystem.Service.Interfaces;
 using Mapster;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
-using static System.Runtime.InteropServices.JavaScript.JSType;
-using AutoMapper;
+using static System.Runtime.InteropServices.JavaScript.JSType; 
 
 namespace DoctorAppointmentSystem.Service
 {
@@ -18,12 +19,13 @@ namespace DoctorAppointmentSystem.Service
         private readonly AppDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IMapper _mapper;
-
-        public AdminService(AppDbContext context,UserManager<ApplicationUser> userManager, IMapper mapper)
+        private readonly IGenericRepository<AuditLog> _repository;
+        public AdminService(AppDbContext context,UserManager<ApplicationUser> userManager, IMapper mapper, IGenericRepository<AuditLog> repository)
         {
             _context = context;
             _userManager = userManager;
             _mapper = mapper;
+            _repository = repository;
         }
 
         public async Task ApproveDoctorAsync(int notificationId)
@@ -222,11 +224,28 @@ namespace DoctorAppointmentSystem.Service
             await _context.SaveChangesAsync();
         }
         // Admin can view audit logs
-        public async Task<List<AuditLogDTO>> GetAuditLogsAsync()
+        public async Task<PagedResult<AuditLogDTO>> GetAuditLogsAsync(AuditLogQueryParams queryParams)
         {
-            return await _context.AuditLogs
-                .OrderByDescending(x => x.CreatedAt)
-                .Select(x => new AuditLogDTO
+            //return await _context.AuditLogs
+            //    .OrderByDescending(x => x.CreatedAt)
+            //    .Select(x => new AuditLogDTO
+            //    {
+            //        Id = x.Id,
+            //        Action = x.Action,
+            //        UserId = x.PerformedByUserId,
+            //        EntityType = x.EntityType,
+            //        ReferenceId = x.ReferenceId,
+            //        Description = x.Description,
+            //        CreatedAt = x.CreatedAt
+            //    })
+            //    .ToListAsync();
+            var spec = new AuditLogSpecification(queryParams);
+
+            var data = await _repository.ListAsync(spec);
+            var count = await _repository.CountAsync(spec);
+            return new PagedResult<AuditLogDTO>
+            {
+                Data = data.Select(x => new AuditLogDTO
                 {
                     Id = x.Id,
                     Action = x.Action,
@@ -235,8 +254,12 @@ namespace DoctorAppointmentSystem.Service
                     ReferenceId = x.ReferenceId,
                     Description = x.Description,
                     CreatedAt = x.CreatedAt
-                })
-                .ToListAsync();
+                }).ToList(),
+                
+                PageNumber=queryParams.PageNumber,
+                TotalPages=count,
+                NextCursor = data.LastOrDefault()?.CreatedAt
+            };
         }
         // Admin can view system logs
         public async Task<List<SystemLogDTO>> GetSystemLogsAsync()
